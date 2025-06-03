@@ -6,48 +6,51 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const app = express();
 app.use(cors());
 
-// لا تضع app.use(express.json()) هنا!
-
+// متغيرات البيئة
 const AUTH_SERVICE_URL = process.env.AUTH_SERVICE_URL;
+const VENDOR_SERVICE_URL = process.env.VENDOR_SERVICE_URL;
+const PRODUCT_SERVICE_URL = process.env.PRODUCT_SERVICE_URL;
 
-// لوج لأي طلب جاي للبوابة
 app.use((req, res, next) => {
   console.log(`[Gateway] ${req.method} ${req.originalUrl}`);
   next();
 });
 
-app.get('/', (req, res) => {
-  res.send('API Gateway is running!');
-});
-
-// حل مشاكل JSON body في proxy:
+// AUTH
 app.use(
   '/api/auth',
   createProxyMiddleware({
     target: AUTH_SERVICE_URL,
     changeOrigin: true,
-    pathRewrite: { '^/api/auth': '' },
-    onProxyReq: (proxyReq, req, res) => {
-      if (req.method === 'POST' && req.headers['content-type']?.includes('application/json')) {
-        let bodyData = '';
-        req.on('data', chunk => {
-          bodyData += chunk;
-        });
-        req.on('end', () => {
-          if (bodyData) {
-            proxyReq.setHeader('Content-Type', 'application/json');
-            proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
-            proxyReq.write(bodyData);
-          }
-        });
-      }
-    }
+    pathRewrite: { '^/api/auth': '' }
   })
 );
 
-// (لو عندك خدمات تانية أضفها بنفس الطريقة)
+// VENDOR
+app.use(
+  '/api/vendors',
+  createProxyMiddleware({
+    target: VENDOR_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/api/vendors': '' }
+  })
+);
 
-// تشغيل البوابة
+// PRODUCT ✅ أضف هذا الجزء لو مش موجود
+app.use(
+  '/api/products',
+  createProxyMiddleware({
+    target: PRODUCT_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: { '^/api/products': '' }
+  })
+);
+
+// Default Route
+app.get('/', (req, res) => {
+  res.send('API Gateway is running!');
+});
+
 const PORT = process.env.PORT || 5003;
 app.listen(PORT, () => {
   console.log(`API Gateway is running on port ${PORT}`);

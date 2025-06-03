@@ -8,19 +8,19 @@ const {
   deleteProduct
 } = require('../controllers/productController');
 
-// راوت إنشاء منتج جديد
-router.post('/products', createProduct);
+// إنشاء منتج جديد
+router.post('/', createProduct);
 
-// راوت جلب جميع المنتجات
-router.get('/products', getAllProducts);
+// جلب جميع المنتجات
+router.get('/', getAllProducts);
 
-// راوت جلب منتج معين
-router.get('/products/:id', getProductById);
+// جلب منتج معين
+router.get('/:id', getProductById);
 
-// راوت تعديل منتج معين
-router.put('/products/:id', updateProduct);
+// تعديل منتج معين
+router.put('/:id', updateProduct);
 
-// راوت حذف منتج معين
-router.delete('/products/:id', deleteProduct);
+// حذف منتج معين
+router.delete('/:id', deleteProduct);
 
 module.exports = router;

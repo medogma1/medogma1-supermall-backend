@@ -1,22 +1,28 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
+const mongoose = require('mongoose');
 
 const app = express();
 app.use(cors());
-app.use(express.json()); // مهم لتحليل JSON في body
+app.use(express.json());
 
-// استدعاء راوتات المنتجات
+// الاتصال بقاعدة البيانات
+mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/supermall')
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch((err) => console.error('❌ MongoDB connection error:', err));
+
+// استدعاء الراوتات
 const productRoutes = require('./routes/productRoutes');
-app.use('/', productRoutes);
+app.use('/products', productRoutes);
 
-// راوت رئيسي للتجربة
+// راوت للتجربة
 app.get('/', (req, res) => {
-  res.send('Product Service is running!');
+  res.send('✅ Product Service is up and running!');
 });
 
-// تشغيل السيرفر على بورت مختلف عن الخدمات الأخرى (مثلاً 5002)
+// تشغيل السيرفر
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
-  console.log(`Product Service is running on port ${PORT}`);
+  console.log(`🚀 Product Service is running on port ${PORT}`);
 });

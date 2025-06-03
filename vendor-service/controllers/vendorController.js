@@ -1,74 +1,51 @@
-// Array لتخزين المتاجر مؤقتًا في الذاكرة
-let vendors = [];
+const Vendor = require('../models/Vendor');
+const bcrypt = require('bcryptjs');
 
-// تسجيل متجر جديد
-exports.registerVendor = (req, res) => {
-  const { name, email, phone } = req.body;
+// تسجيل بائع جديد
+exports.registerVendor = async (req, res) => {
+  try {
+    const { username, email, password, phone, address } = req.body;
 
-  if (!name || !email || !phone) {
-    return res.status(400).json({ message: 'All fields are required' });
+    if (!username || !email || !password) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    const existingVendor = await Vendor.findOne({ email });
+    if (existingVendor) {
+      return res.status(400).json({ message: 'Email already exists' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newVendor = new Vendor({
+      username,
+      email,
+      password: hashedPassword,
+      phone,
+      address
+    });
+
+    await newVendor.save();
+
+    res.status(201).json({
+      message: 'Vendor registered successfully',
+      vendor: {
+        id: newVendor._id,
+        username: newVendor.username,
+        email: newVendor.email
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Something went wrong', error: error.message });
   }
-
-  const newVendor = {
-    id: vendors.length + 1,
-    name,
-    email,
-    phone
-  };
-
-  vendors.push(newVendor);
-
-  res.status(201).json({ message: 'Vendor registered successfully', vendor: newVendor });
 };
 
-// جلب كل المتاجر
-exports.getAllVendors = (req, res) => {
-  res.json(vendors);
-};
-
-// جلب متجر معين
-exports.getVendorById = (req, res) => {
-  const { id } = req.params;
-  const vendor = vendors.find(v => v.id == id);
-
-  if (!vendor) {
-    return res.status(404).json({ message: 'Vendor not found' });
+// جلب كل البائعين
+exports.getVendors = async (req, res) => {
+  try {
+    const vendors = await Vendor.find();
+    res.status(200).json(vendors);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching vendors', error: error.message });
   }
-
-  res.json(vendor);
-};
-// تعديل بيانات متجر
-exports.updateVendor = (req, res) => {
-  const { id } = req.params;
-  const { name, email, phone } = req.body;
-
-  const vendorIndex = vendors.findIndex(v => v.id == id);
-
-  if (vendorIndex === -1) {
-    return res.status(404).json({ message: 'Vendor not found' });
-  }
-
-  if (!name && !email && !phone) {
-    return res.status(400).json({ message: 'No update fields provided' });
-  }
-
-  // تحديث الحقول لو اتبعتت
-  if (name) vendors[vendorIndex].name = name;
-  if (email) vendors[vendorIndex].email = email;
-  if (phone) vendors[vendorIndex].phone = phone;
-
-  res.json({ message: 'Vendor updated successfully', vendor: vendors[vendorIndex] });
-};
-// حذف متجر
-exports.deleteVendor = (req, res) => {
-  const { id } = req.params;
-  const vendorIndex = vendors.findIndex(v => v.id == id);
-
-  if (vendorIndex === -1) {
-    return res.status(404).json({ message: 'Vendor not found' });
-  }
-
-  // نحذف المتجر من المصفوفة
-  const deletedVendor = vendors.splice(vendorIndex, 1)[0];
-  res.json({ message: 'Vendor deleted successfully', vendor: deletedVendor });
 };

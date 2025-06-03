@@ -4,9 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// تسجيل مستخدم جديد
+// تسجيل مستخدم جديد على /register
 router.post('/register', async (req, res) => {
-  console.log('🚩 Received at /register:', req.body); // <--- هنا اللوج المهم
   try {
     const { username, email, password } = req.body;
     if (!username || !email || !password) {
@@ -32,9 +31,8 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// تسجيل الدخول
+// تسجيل الدخول على /login
 router.post('/login', async (req, res) => {
-  console.log('🚩 Received at /login:', req.body); // <--- هنا اللوج المهم
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });

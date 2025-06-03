@@ -1,12 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { registerVendor, getAllVendors, getVendorById, updateVendor, deleteVendor } = require('../controllers/vendorController');
+const { registerVendor, getVendors } = require('../controllers/vendorController');
 
-// راوتات المتاجر
-router.post('/vendors/register', registerVendor);
-router.get('/vendors', getAllVendors);
-router.get('/vendors/:id', getVendorById);
-router.put('/vendors/:id', updateVendor);
-router.delete('/vendors/:id', deleteVendor);
+// راوتات
+router.post('/register', registerVendor);
+router.get('/', getVendors);
 
 module.exports = router;
