@@ -1,0 +1,21 @@
+{
+  "name": "supermall-backend",
+  "version": "1.0.0",
+  "description": "Backend services for SuperMall application",
+  "main": "index.js",
+  "scripts": {
+    "setup-db": "node utils/setup-database.js",
+    "start": "node start-all.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "axios": "^1.10.0",
+    "dotenv": "^16.6.1",
+    "fs": "^0.0.1-security",
+    "mysql2": "^3.14.1",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "eslint": "^9.29.0"
+  }
+}

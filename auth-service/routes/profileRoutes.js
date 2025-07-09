@@ -1,24 +1,17 @@
+// auth-service/routes/profileRoutes.js
 const express = require('express');
 const router = express.Router();
-const jwt = require('jsonwebtoken');
+const profileController = require('../controllers/profileController');
+const authController = require('../controllers/authController');
+const authenticateToken = require('../middleware/authMiddleware');
 
-// ميدل وير للتحقق من التوكن
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ message: 'Access denied. No token provided.' });
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secretkey');
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(403).json({ message: 'Invalid token.' });
-  }
-};
+// GET /auth/profile → جلب بيانات البروفايل
+router.get('/profile', authenticateToken, profileController.getProfile);
 
-// راوت محمي: جلب بيانات البروفايل
-router.get('/profile', authenticateToken, (req, res) => {
-  res.json({ message: 'Profile data', user: req.user });
-});
+// PUT /auth/profile → تعديل بيانات البروفايل
+router.put('/profile', authenticateToken, profileController.updateProfile);
+
+// POST /auth/change-password → تغيير كلمة المرور
+router.post('/change-password', authenticateToken, authController.changePassword);
 
 module.exports = router;

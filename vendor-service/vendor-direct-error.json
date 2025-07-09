@@ -1,0 +1,6 @@
+{
+  "success": false,
+  "error": "Unknown column 'password_hash' in 'field list'",
+  "sqlState": "42S22",
+  "sqlMessage": "Unknown column 'password_hash' in 'field list'"
+}

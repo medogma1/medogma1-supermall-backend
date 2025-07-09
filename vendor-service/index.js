@@ -1,32 +1,68 @@
+// vendor-service/index.js
 require('dotenv').config();
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
+// استيراد ملفات التكوين والتسجيل
+const config = require('./config');
+const logger = require('./logger');
+const { testConnection } = require('./config/database');
+
+// استيراد الوسائط البرمجية للمصادقة
+const authMiddleware = require('./middleware/authMiddleware');
+
+// استيراد مسارات API
+const vendorRoutes = require('./routes/vendorRoutes');
+const serviceRoutes = require('./routes/serviceRoutes');
+
+// إنشاء تطبيق Express
 const app = express();
 
-// 🌐 ميدل ويرز
+// الوسائط البرمجية
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// 🔗 اتصال بقاعدة البيانات MongoDB
-mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/supermall', {
-  // options ممكن تضيف هنا خيارات زي useNewUrlParser لو نسخ قديمة من Mongo
-})
-.then(() => console.log('✅ Connected to MongoDB'))
-.catch((err) => console.error('❌ MongoDB connection error:', err));
+// مجلد الملفات الثابتة للصور المرفوعة
+app.use('/uploads', express.static(path.join(__dirname, config.uploadsPath)));
 
-// 🛣️ استدعاء الراوتات
-const vendorRoutes = require('./routes/vendorRoutes');
-app.use('/vendors', vendorRoutes);
-
-// 🔍 راوت افتراضي للتجربة
+// روت صحيّة (اختياري) يردّ نصًّا بسيطًا عند GET /
 app.get('/', (req, res) => {
   res.send('✅ Vendor Service is up and running!');
 });
 
-// 🚀 تشغيل السيرفر
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
-  console.log(`🚀 Vendor Service is running on port ${PORT}`);
+// مسار صحي لا يحتاج إلى مصادقة
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', service: 'vendor-service' });
 });
+
+// هنا نثبت كل مسارات Vendor تحت البادئة /vendors
+app.use('/vendors', vendorRoutes);
+
+// هنا نثبت كل مسارات Service تحت البادئة /services
+app.use('/services', serviceRoutes);
+
+// اختبار الاتصال بقاعدة البيانات MySQL
+async function startServer() {
+  try {
+    // اختبار الاتصال بقاعدة البيانات
+    const connected = await testConnection();
+    if (!connected) {
+      logger.error('❌ [Vendor] Failed to connect to MySQL database. Exiting...');
+      process.exit(1);
+    }
+    
+    // بدء تشغيل الخادم
+    const PORT = config.port;
+    app.listen(PORT, () => {
+      logger.info(`🚀 [Vendor] Service running on port ${PORT} in ${config.nodeEnv} mode`);
+    });
+  } catch (error) {
+    logger.error(`❌ [Vendor] Server startup error: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+// بدء تشغيل الخادم
+startServer();

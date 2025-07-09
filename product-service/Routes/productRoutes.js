@@ -1,26 +1,13 @@
 const express = require('express');
 const router = express.Router();
-const {
-  createProduct,
-  getAllProducts,
-  getProductById,
-  updateProduct,
-  deleteProduct
-} = require('../controllers/productController');
+const productController = require('../controllers/productController');
 
-// إنشاء منتج جديد
-router.post('/', createProduct);
-
-// جلب جميع المنتجات
-router.get('/', getAllProducts);
-
-// جلب منتج معين
-router.get('/:id', getProductById);
-
-// تعديل منتج معين
-router.put('/:id', updateProduct);
-
-// حذف منتج معين
-router.delete('/:id', deleteProduct);
+// مسارات المنتجات الأساسية
+router.post('/', productController.createProduct);
+router.get('/', productController.getAllProducts);
+router.get('/search', productController.searchProducts);
+router.get('/:id', productController.getProductById);
+router.put('/:id', productController.updateProduct);
+router.delete('/:id', productController.deleteProduct);
 
 module.exports = router;

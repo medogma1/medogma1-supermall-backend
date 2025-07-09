@@ -1,0 +1,19 @@
+# Node.js
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# الملفات المرفوعة
+uploads/*
+!uploads/.gitkeep
+
+# بيئة التشغيل
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ملفات النظام
+.DS_Store
+Thumbs.db

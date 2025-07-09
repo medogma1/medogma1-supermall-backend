@@ -1,0 +1,10 @@
+{
+  "message": "Request failed with status code 500",
+  "response": {
+    "data": {
+      "message": "Error fetching vendors",
+      "error": "(intermediate value) is not iterable"
+    },
+    "status": 500
+  }
+}

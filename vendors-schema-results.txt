@@ -1,0 +1,15 @@
+Connected to MySQL database
+Vendors table columns:
+id (int(11))
+user_id (int(11))
+store_name (varchar(100))
+store_description (text)
+store_logo_url (varchar(255))
+contact_email (varchar(100))
+contact_phone (varchar(20))
+store_address (text)
+store_settings_completed (tinyint(1))
+created_at (timestamp)
+updated_at (timestamp)
+
+Email column exists: false

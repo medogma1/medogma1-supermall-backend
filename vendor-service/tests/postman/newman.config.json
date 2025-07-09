@@ -1,0 +1,30 @@
+{
+  "collection": "./vendor-api.postman_collection.json",
+  "environment": "./vendor-api.postman_environment.json",
+  "reporters": ["cli", "htmlextra", "json"],
+  "reporter": {
+    "htmlextra": {
+      "export": "../reports/newman/vendor-api-report.html",
+      "template": "default",
+      "title": "تقرير اختبارات API البائعين",
+      "browserTitle": "تقرير اختبارات API البائعين",
+      "showEnvironmentData": true,
+      "skipEnvironmentVars": ["auth_token"],
+      "skipHeaders": ["Authorization"],
+      "skipSensitiveData": true,
+      "showMarkdownLinks": true,
+      "showFolderDescription": true,
+      "timezone": "Asia/Riyadh"
+    },
+    "json": {
+      "export": "../reports/newman/vendor-api-report.json"
+    }
+  },
+  "timeout": 60000,
+  "timeoutRequest": 10000,
+  "timeoutScript": 5000,
+  "bail": false,
+  "ignoreRedirects": false,
+  "insecure": true,
+  "color": "on"
+}
