@@ -20,11 +20,24 @@ const pool = mysql.createPool(dbConfig);
 // إنشاء تذكرة دعم جديدة
 async function createSupportTicket(ticketData) {
   try {
+    console.log('Received ticketData:', JSON.stringify(ticketData, null, 2));
     const { user_id, subject, description, priority, category } = ticketData;
     
+    console.log('Extracted values:', { user_id, subject, description, priority, category });
+    
+    if (!user_id) {
+      throw new Error('user_id is required');
+    }
+    if (!subject) {
+      throw new Error('subject is required');
+    }
+    if (!description) {
+      throw new Error('description is required');
+    }
+    
     const [result] = await pool.query(
-      'INSERT INTO support_tickets (user_id, subject, description, priority, category, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [user_id, subject, description, priority, category, 'open']
+      'INSERT INTO support_tickets (user_id, subject, description, priority, category) VALUES (?, ?, ?, ?, ?)',
+      [user_id, subject, description, priority, category]
     );
     
     const [newTicket] = await pool.query(
@@ -35,6 +48,7 @@ async function createSupportTicket(ticketData) {
     return { success: true, ticket: newTicket[0] };
   } catch (error) {
     console.error('خطأ في إنشاء تذكرة دعم:', error);
+    console.error('Error details:', error.message);
     return { success: false, error: error.message };
   }
 }
@@ -151,6 +165,68 @@ async function addMessageToTicket(messageData) {
   }
 }
 
+// تحديث تذكرة الدعم
+async function updateSupportTicket(ticketId, updateData) {
+  try {
+    // التحقق من وجود التذكرة
+    const [ticket] = await pool.query(
+      'SELECT * FROM support_tickets WHERE id = ?',
+      [ticketId]
+    );
+    
+    if (ticket.length === 0) {
+      return { success: false, error: 'تذكرة الدعم غير موجودة' };
+    }
+    
+    // بناء استعلام التحديث
+    const fields = [];
+    const values = [];
+    
+    if (updateData.status) {
+      fields.push('status = ?');
+      values.push(updateData.status);
+    }
+    if (updateData.priority) {
+      fields.push('priority = ?');
+      values.push(updateData.priority);
+    }
+    if (updateData.subject) {
+      fields.push('subject = ?');
+      values.push(updateData.subject);
+    }
+    if (updateData.description) {
+      fields.push('description = ?');
+      values.push(updateData.description);
+    }
+    if (updateData.updated_at) {
+      fields.push('updated_at = ?');
+      values.push(updateData.updated_at);
+    }
+    
+    if (fields.length === 0) {
+      return { success: false, error: 'لا توجد بيانات للتحديث' };
+    }
+    
+    values.push(ticketId);
+    
+    // تحديث التذكرة
+    await pool.query(
+      `UPDATE support_tickets SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    
+    const [updatedTicket] = await pool.query(
+      'SELECT * FROM support_tickets WHERE id = ?',
+      [ticketId]
+    );
+    
+    return { success: true, ticket: updatedTicket[0] };
+  } catch (error) {
+    console.error('خطأ في تحديث تذكرة الدعم:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 // تحديث حالة تذكرة الدعم
 async function updateTicketStatus(ticketId, status) {
   try {
@@ -245,6 +321,7 @@ module.exports = {
   getUserSupportTickets,
   getAllSupportTickets,
   addMessageToTicket,
+  updateSupportTicket,
   updateTicketStatus,
   getSupportTicketStats,
   searchSupportTickets

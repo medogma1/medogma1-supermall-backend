@@ -1,0 +1,331 @@
+// vendor-service/routes/vendorRoutes.js
+const express = require('express');
+const router = express.Router();
+const { Vendor } = require('../models/Vendor');
+const vendorController = require('../controllers/vendorController');
+const multer = require('multer');
+const path = require('path');
+const config = require('../../utils/config');
+const { logger } = require('../../utils/logger');
+
+// استيراد الوسائط البرمجية للمصادقة
+const authMiddleware = require('../middleware/authMiddleware');
+const roleMiddleware = require('../middleware/roleMiddleware');
+
+
+// GET /vendors  → جلب كل التجّار (متاح للجميع)
+router.get('/', async (req, res) => {
+  try {
+    // إضافة خيار لتصفية المتاجر النشطة والتي أكملت إعداداتها
+    const { active, completed, page, limit } = req.query;
+    
+    let filters = {};
+    
+    // تصفية حسب حالة النشاط إذا تم تحديدها
+    if (active === 'true') {
+      filters.is_active = true;
+    }
+    
+    // تصفية حسب اكتمال إعدادات المتجر إذا تم تحديدها
+    if (completed === 'true') {
+      filters.store_settings_completed = true;
+    }
+    
+    // إضافة خيارات الصفحات إذا تم تحديدها
+    if (page) {
+      filters.page = parseInt(page);
+    }
+    
+    if (limit) {
+      filters.limit = parseInt(limit);
+    }
+    
+    try {
+      const result = await Vendor.findAll(filters);
+      
+      // التحقق من وجود البيانات
+      if (!result || !result.vendors) {
+        logger.error('Invalid result structure from findAll');
+        return res.status(500).json({ 
+          message: 'Error fetching vendors', 
+          error: 'Invalid result structure' 
+        });
+      }
+      
+      res.json(result); // إرجاع الكائن الكامل الذي يحتوي على vendors و pagination
+    } catch (findError) {
+      logger.error('Error in findAll operation:', findError);
+      return res.status(500).json({ 
+        message: 'Error fetching vendors', 
+        error: findError.message || 'Database query error' 
+      });
+    }
+  } catch (err) {
+    logger.error('Error in vendors route:', err);
+    res.status(500).json({ message: 'Error fetching vendors', error: err.message });
+  }
+});
+
+// GET /vendors/active  → جلب المتاجر النشطة والتي أكملت إعداداتها (متاح للجميع)
+router.get('/active', async (req, res) => {
+  try {
+    const { page, limit } = req.query;
+    
+    let filters = {
+      is_active: true,
+      store_settings_completed: true
+    };
+    
+    // إضافة خيارات الصفحات إذا تم تحديدها
+    if (page) {
+      filters.page = parseInt(page);
+    }
+    
+    if (limit) {
+      filters.limit = parseInt(limit);
+    }
+    
+    try {
+      const result = await Vendor.findAll(filters);
+      
+      // التحقق من وجود البيانات
+      if (!result || !result.vendors) {
+        logger.error('Invalid result structure from findAll');
+        return res.status(500).json({ 
+          message: 'Error fetching active vendors', 
+          error: 'Invalid result structure' 
+        });
+      }
+      
+      res.json(result); // إرجاع الكائن الكامل الذي يحتوي على vendors و pagination
+    } catch (findError) {
+      logger.error('Error in findAll operation for active vendors:', findError);
+      return res.status(500).json({ 
+        message: 'Error fetching active vendors', 
+        error: findError.message || 'Database query error' 
+      });
+    }
+  } catch (err) {
+    logger.error('Error in active vendors route:', err);
+    res.status(500).json({ message: 'Error fetching active vendors', error: err.message });
+  }
+});
+
+// ✅ POST /vendors → إنشاء تاجر جديد (مسموح للمشرفين وخدمة المصادقة)
+router.post('/', (req, res, next) => {
+  console.log('🔍 [Vendor Routes] POST /vendors request received');
+  console.log('🔍 [Vendor Routes] Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('🔍 [Vendor Routes] Authorization header:', req.headers.authorization);
+  console.log('🔍 [Vendor Routes] About to call authMiddleware.authenticate');
+  next();
+}, authMiddleware.authenticate, async (req, res, next) => {
+  console.log('🔍 [Vendor Routes] After authMiddleware.authenticate, user:', req.user);
+  // السماح للمشرف بإنشاء بائع جديد
+  if (req.user.role === 'admin') {
+    return next();
+  }
+  
+  // السماح للبائع بإنشاء متجره الخاص
+  if (req.user.role === 'vendor') {
+    return next();
+  }
+  
+  // منع الوصول لغير المصرح لهم
+  return res.status(403).json({ message: 'غير مسموح - يمكن للمشرفين والبائعين فقط إنشاء متاجر' });
+}, vendorController.createVendor);
+
+// ✅ GET /vendors/email/:email → جلب تاجر بالبريد الإلكتروني (مسموح للمشرفين والبائع نفسه)
+router.get('/email/:email', authMiddleware.authenticate, async (req, res, next) => {
+  // السماح للمشرف بالوصول إلى أي بائع
+  if (req.user.role === 'admin') {
+    return next();
+  }
+  
+  // السماح للبائع بالوصول إلى بياناته فقط
+  if (req.user.role === 'vendor' && req.user.email === req.params.email) {
+    return next();
+  }
+  
+  // منع الوصول لغير المصرح لهم
+  return res.status(403).json({ message: 'غير مسموح - لا يمكنك الوصول إلى بيانات بائع آخر' });
+}, vendorController.getVendorByEmail);
+
+// GET /vendors/search → البحث في البائعين (متاح للجميع)
+router.get('/search', vendorController.searchVendors);
+
+// GET /vendors/:id → جلب تاجر بمعرّف (مسموح للمشرفين والبائع نفسه)
+router.get('/:id', authMiddleware.authenticate, async (req, res, next) => {
+  // السماح للمشرف بالوصول إلى أي بائع
+  if (req.user.role === 'admin') {
+    return next();
+  }
+  
+  // السماح للبائع بالوصول إلى بياناته فقط
+  // استخدام مقارنة مرنة للتعامل مع اختلاف الأنواع (string vs number)
+  if (req.user.role === 'vendor' && String(req.user.vendorId) === String(req.params.id)) {
+    return next();
+  }
+  
+  // منع الوصول لغير المصرح لهم
+  return res.status(403).json({ message: 'غير مسموح - لا يمكنك الوصول إلى بيانات بائع آخر' });
+}, vendorController.getVendorById);
+
+// PUT /vendors/:id → تحديث تاجر (مسموح للمشرفين والبائع نفسه)
+router.put('/:id', authMiddleware.authenticate, async (req, res, next) => {
+  // السماح للمشرف بتحديث أي بائع
+  if (req.user.role === 'admin') {
+    return next();
+  }
+  
+  // السماح للبائع بتحديث بياناته فقط
+  // استخدام مقارنة مرنة للتعامل مع اختلاف الأنواع (string vs number)
+  if (req.user.role === 'vendor' && String(req.user.vendorId) === String(req.params.id)) {
+    return next();
+  }
+  
+  // منع الوصول لغير المصرح لهم
+  return res.status(403).json({ message: 'غير مسموح - لا يمكنك تحديث بيانات بائع آخر' });
+}, vendorController.updateVendor);
+
+// DELETE /vendors/:id → حذف تاجر (مسموح للمشرفين فقط)
+router.delete('/:id', authMiddleware.authenticate, roleMiddleware('admin'), vendorController.deleteVendor);
+
+// إعداد multer لرفع الصور
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadPath = path.join(__dirname, '../../uploads');
+    // إنشاء المجلد إذا لم يكن موجوداً
+    const fs = require('fs');
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+    cb(null, uploadPath);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'logo-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  // قبول الصور فقط
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('يُسمح برفع الصور فقط'), false);
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
+});
+
+// POST /vendors/:vendorId/upload-logo → رفع شعار المتجر
+router.post('/:vendorId/upload-logo', authMiddleware.authenticate, async (req, res, next) => {
+  // التحقق من الصلاحيات
+  if (req.user.role === 'admin') {
+    return next();
+  }
+  
+  if (req.user.role === 'vendor' && String(req.user.vendorId) === String(req.params.vendorId)) {
+    return next();
+  }
+  
+  return res.status(403).json({ message: 'غير مسموح - لا يمكنك رفع شعار لمتجر آخر' });
+}, upload.single('logo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'لم يتم تحديد ملف للرفع' });
+    }
+
+    // إنشاء رابط الصورة
+    const logoUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    
+    res.json({
+      success: true,
+      message: 'تم رفع الشعار بنجاح',
+      logoUrl: logoUrl,
+      filename: req.file.filename
+    });
+  } catch (error) {
+    console.error('خطأ في رفع الشعار:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل في رفع الشعار',
+      error: error.message
+    });
+  }
+});
+
+// PUT /vendors/:vendorId/settings → تحديث إعدادات المتجر (مسموح للمشرفين والبائع نفسه)
+router.put('/:vendorId/settings', authMiddleware.authenticate, async (req, res, next) => {
+  console.log('🔍 [Settings Route] User vendorId:', req.user.vendorId, 'Type:', typeof req.user.vendorId);
+  console.log('🔍 [Settings Route] Route vendorId:', req.params.vendorId, 'Type:', typeof req.params.vendorId);
+  
+  // السماح للمشرف بتحديث إعدادات أي متجر
+  if (req.user.role === 'admin') {
+    return next();
+  }
+  
+  // السماح للبائع بتحديث إعدادات متجره فقط
+  // استخدام مقارنة مرنة للتعامل مع اختلاف الأنواع (string vs number)
+  if (req.user.role === 'vendor' && String(req.user.vendorId) === String(req.params.vendorId)) {
+    return next();
+  }
+  
+  // منع الوصول لغير المصرح لهم
+  console.log('❌ [Settings Route] Access denied - vendorId mismatch');
+  return res.status(403).json({ message: 'غير مسموح - لا يمكنك تحديث إعدادات متجر آخر' });
+}, vendorController.updateStoreSettings);
+
+// رفع شعار المتجر (مسموح للمشرفين والبائع نفسه)
+router.post('/:vendorId/upload-logo', authMiddleware.authenticate, async (req, res, next) => {
+  // السماح للمشرف برفع شعار لأي متجر
+  if (req.user.role === 'admin') {
+    return next();
+  }
+  
+  // السماح للبائع برفع شعار لمتجره فقط
+  // استخدام مقارنة مرنة للتعامل مع اختلاف الأنواع (string vs number)
+  if (req.user.role === 'vendor' && String(req.user.vendorId) === String(req.params.vendorId)) {
+    return next();
+  }
+  
+  // منع الوصول لغير المصرح لهم
+  return res.status(403).json({ message: 'غير مسموح - لا يمكنك رفع شعار لمتجر آخر' });
+}, upload.single('logo'), (error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'حجم الملف كبير جداً. الحد الأقصى 5MB' });
+    }
+    return res.status(400).json({ message: 'خطأ في رفع الملف: ' + error.message });
+  } else if (error) {
+    return res.status(400).json({ message: error.message });
+  }
+  next();
+}, vendorController.uploadStoreLogo);
+
+// GET /vendors/:vendorId/settings → جلب إعدادات المتجر (مسموح للمشرفين والبائع نفسه)
+router.get('/:vendorId/settings', authMiddleware.authenticate, async (req, res, next) => {
+  // السماح للمشرف بجلب إعدادات أي متجر
+  if (req.user.role === 'admin') {
+    return next();
+  }
+  
+  // السماح للبائع بجلب إعدادات متجره فقط
+  // استخدام مقارنة مرنة للتعامل مع اختلاف الأنواع (string vs number)
+  if (req.user.role === 'vendor' && String(req.user.vendorId) === String(req.params.vendorId)) {
+    return next();
+  }
+  
+  // منع الوصول لغير المصرح لهم
+  return res.status(403).json({ message: 'غير مسموح - لا يمكنك جلب إعدادات متجر آخر' });
+}, vendorController.getStoreSettings);
+
+
+
+module.exports = router;

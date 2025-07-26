@@ -1,6 +1,6 @@
 // vendor-service/models/Service.js
 const db = require('../config/database');
-const logger = require('../logger');
+// const { logger } = require('../../utils/logger');
 
 // تعريف الثوابت
 const MIN_PRICE = 0.0;
@@ -163,16 +163,19 @@ class Service {
       const placeholders = Object.keys(dbData).map(() => '?').join(', ');
       const values = Object.values(dbData);
 
-      const [result] = await db.query(
+      // تحويل قيم undefined إلى null
+      const cleanValues = values.map(value => value === undefined ? null : value);
+
+      const [result] = await db.execute(
         `INSERT INTO services (${fields}) VALUES (${placeholders})`,
-        values
+        cleanValues
       );
 
       // استرجاع الخدمة المنشأة
-      const [rows] = await db.query('SELECT * FROM services WHERE id = ?', [result.insertId]);
+      const [rows] = await db.execute('SELECT * FROM services WHERE id = ?', [result.insertId]);
       return new Service(this.toCamelCase(rows[0]));
     } catch (error) {
-      logger.error('خطأ في إنشاء خدمة جديدة:', error);
+      console.error('خطأ في إنشاء خدمة جديدة:', error);
       throw error;
     }
   }
@@ -180,11 +183,11 @@ class Service {
   // البحث عن خدمة بواسطة المعرف
   static async findById(id) {
     try {
-      const [rows] = await db.query('SELECT * FROM services WHERE id = ?', [id]);
+      const [rows] = await db.execute('SELECT * FROM services WHERE id = ?', [id]);
       if (rows.length === 0) return null;
       return new Service(this.toCamelCase(rows[0]));
     } catch (error) {
-      logger.error(`خطأ في البحث عن خدمة بالمعرف ${id}:`, error);
+      console.error(`خطأ في البحث عن خدمة بالمعرف ${id}:`, error);
       throw error;
     }
   }
@@ -209,10 +212,12 @@ class Service {
         query += ' WHERE ' + conditions.join(' AND ');
       }
 
-      const [rows] = await db.query(query, values);
+      // تحويل قيم undefined إلى null
+      const cleanValues = values.map(value => value === undefined ? null : value);
+      const [rows] = await db.execute(query, cleanValues);
       return rows.map(row => new Service(this.toCamelCase(row)));
     } catch (error) {
-      logger.error('خطأ في البحث عن الخدمات:', error);
+      console.error('خطأ في البحث عن الخدمات:', error);
       throw error;
     }
   }
@@ -236,15 +241,18 @@ class Service {
       const setClause = Object.keys(dbData).map(key => `${key} = ?`).join(', ');
       const values = [...Object.values(dbData), id];
 
-      await db.query(
+      // تحويل قيم undefined إلى null
+      const cleanValues = values.map(value => value === undefined ? null : value);
+      
+      await db.execute(
         `UPDATE services SET ${setClause} WHERE id = ?`,
-        values
+        cleanValues
       );
 
       // استرجاع الخدمة المحدثة
       return await this.findById(id);
     } catch (error) {
-      logger.error(`خطأ في تحديث الخدمة بالمعرف ${id}:`, error);
+      console.error(`خطأ في تحديث الخدمة بالمعرف ${id}:`, error);
       throw error;
     }
   }
@@ -258,10 +266,10 @@ class Service {
         throw new Error('الخدمة غير موجودة');
       }
 
-      await db.query('DELETE FROM services WHERE id = ?', [id]);
+      await db.execute('DELETE FROM services WHERE id = ?', [id]);
       return service;
     } catch (error) {
-      logger.error(`خطأ في حذف الخدمة بالمعرف ${id}:`, error);
+      console.error(`خطأ في حذف الخدمة بالمعرف ${id}:`, error);
       throw error;
     }
   }
@@ -277,10 +285,12 @@ class Service {
         values.push(status);
       }
 
-      const [rows] = await db.query(query, values);
+      // تحويل قيم undefined إلى null
+      const cleanValues = values.map(value => value === undefined ? null : value);
+      const [rows] = await db.execute(query, cleanValues);
       return rows.map(row => new Service(this.toCamelCase(row)));
     } catch (error) {
-      logger.error(`خطأ في البحث عن خدمات البائع ${vendorId}:`, error);
+      console.error(`خطأ في البحث عن خدمات البائع ${vendorId}:`, error);
       throw error;
     }
   }
@@ -288,13 +298,13 @@ class Service {
   // البحث عن الخدمات المميزة
   static async findFeatured(limit = 10) {
     try {
-      const [rows] = await db.query(
+      const [rows] = await db.execute(
         'SELECT * FROM services WHERE is_featured = ? AND status = ? AND is_available = ? LIMIT ?',
         [true, 'active', true, limit]
       );
       return rows.map(row => new Service(this.toCamelCase(row)));
     } catch (error) {
-      logger.error('خطأ في البحث عن الخدمات المميزة:', error);
+      console.error('خطأ في البحث عن الخدمات المميزة:', error);
       throw error;
     }
   }
@@ -336,10 +346,12 @@ class Service {
         values.push(parseFloat(maxPrice));
       }
 
-      const [rows] = await db.query(sqlQuery, values);
+      // تحويل قيم undefined إلى null
+      const cleanValues = values.map(value => value === undefined ? null : value);
+      const [rows] = await db.execute(sqlQuery, cleanValues);
       return rows.map(row => new Service(this.toCamelCase(row)));
     } catch (error) {
-      logger.error('خطأ في البحث عن الخدمات:', error);
+      console.error('خطأ في البحث عن الخدمات:', error);
       throw error;
     }
   }
@@ -347,13 +359,13 @@ class Service {
   // تحديث تقييم الخدمة
   static async updateRating(id, rating, reviewCount) {
     try {
-      await db.query(
+      await db.execute(
         'UPDATE services SET rating = ?, review_count = ?, updated_at = ? WHERE id = ?',
         [rating, reviewCount, new Date(), id]
       );
       return await this.findById(id);
     } catch (error) {
-      logger.error(`خطأ في تحديث تقييم الخدمة ${id}:`, error);
+      console.error(`خطأ في تحديث تقييم الخدمة ${id}:`, error);
       throw error;
     }
   }

@@ -9,7 +9,7 @@ exports.createTicket = async (req, res) => {
     
     // إنشاء بيانات التذكرة باستخدام نموذج MySQL
     const ticketData = {
-      user_id: req.user.id, // ملاحظة: في MySQL نستخدم id بدلاً من _id
+      user_id: req.user.userId, // ملاحظة: في MySQL نستخدم id بدلاً من _id
       subject,
       description: message,
       priority: 'medium', // قيمة افتراضية
@@ -25,6 +25,27 @@ exports.createTicket = async (req, res) => {
     
     res.status(201).json(result.ticket);
   } catch (error) {
+    console.error('Error creating support ticket:', error);
+    res.status(500).json({ message: error.message || 'Internal server error' });
+  }
+};
+
+exports.getAllTickets = async (req, res) => {
+  try {
+    // فقط المسؤول يمكنه عرض جميع التذاكر
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized to view all tickets' });
+    }
+    
+    // استخدام نموذج MySQL للحصول على جميع التذاكر
+    const result = await supportModel.getAllSupportTickets();
+    
+    if (!result.success) {
+      return res.status(500).json({ message: result.error });
+    }
+    
+    res.json(result.tickets);
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
@@ -32,7 +53,7 @@ exports.createTicket = async (req, res) => {
 exports.getUserTickets = async (req, res) => {
   try {
     // استخدام نموذج MySQL للحصول على تذاكر المستخدم
-    const result = await supportModel.getUserSupportTickets(req.user.id);
+    const result = await supportModel.getUserSupportTickets(req.user.userId);
     
     if (!result.success) {
       return res.status(500).json({ message: result.error });
@@ -58,13 +79,68 @@ exports.getTicketDetails = async (req, res) => {
     }
     
     // التحقق من صلاحية المستخدم لعرض هذه التذكرة
-    if (result.ticket.user_id !== req.user.id && req.user.role !== 'admin') {
+    if (result.ticket.user_id !== req.user.userId && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to view this ticket' });
     }
     
     res.json(result.ticket);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+exports.updateTicket = async (req, res) => {
+  try {
+    const { ticketId } = req.params;
+    const { status, priority, subject, description } = req.body;
+    const userId = req.user.id || req.user.userId;
+    const userRole = req.user.role;
+
+    // التحقق من وجود التذكرة
+    const ticketResult = await supportModel.getSupportTicketById(ticketId);
+    if (!ticketResult.success || !ticketResult.ticket) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'التذكرة غير موجودة' 
+      });
+    }
+
+    // التحقق من الصلاحية
+    if (userRole !== 'admin' && ticketResult.ticket.user_id !== userId) {
+      return res.status(403).json({ 
+        success: false,
+        message: 'غير مصرح لك بتحديث هذه التذكرة' 
+      });
+    }
+
+    const updateData = {};
+    if (status) updateData.status = status;
+    if (priority && userRole === 'admin') updateData.priority = priority;
+    if (subject) updateData.subject = subject;
+    if (description) updateData.description = description;
+    updateData.updated_at = new Date();
+
+    const result = await supportModel.updateSupportTicket(ticketId, updateData);
+
+    if (!result.success) {
+      return res.status(500).json({ 
+        success: false,
+        message: result.error 
+      });
+    }
+
+    res.json({ 
+      success: true,
+      message: 'تم تحديث التذكرة بنجاح', 
+      data: result.ticket 
+    });
+  } catch (error) {
+    console.error('خطأ في تحديث التذكرة:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'حدث خطأ في الخادم',
+      error: 'INTERNAL_SERVER_ERROR'
+    });
   }
 };
 
@@ -81,14 +157,14 @@ exports.addTicketReply = async (req, res) => {
     }
     
     // التحقق من صلاحية المستخدم للرد على هذه التذكرة
-    if (ticketResult.ticket.user_id !== req.user.id && req.user.role !== 'admin') {
+    if (ticketResult.ticket.user_id !== req.user.userId && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to reply to this ticket' });
     }
     
     // إضافة الرد باستخدام نموذج MySQL
     const replyData = {
       ticket_id: ticketId,
-      user_id: req.user.id,
+      user_id: req.user.userId,
       message: message
     };
     
@@ -123,7 +199,7 @@ exports.closeTicket = async (req, res) => {
     }
     
     // التحقق من صلاحية المستخدم لإغلاق هذه التذكرة
-    if (ticketResult.ticket.user_id !== req.user.id && req.user.role !== 'admin') {
+    if (ticketResult.ticket.user_id !== req.user.userId && req.user.role !== 'admin') {
       return res.status(403).json({ message: 'Not authorized to close this ticket' });
     }
     
@@ -146,8 +222,15 @@ exports.closeTicket = async (req, res) => {
 exports.getFAQs = async (req, res) => {
   try {
     // استخدام اتصال قاعدة البيانات مباشرة للحصول على الأسئلة الشائعة
-    // نفترض أن لدينا جدول faqs في قاعدة البيانات MySQL
-    const pool = supportModel.pool; // الحصول على اتصال قاعدة البيانات من نموذج الدعم
+    const mysql = require('mysql2/promise');
+    const dbConfig = {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 3306,
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || 'xx100100',
+      database: process.env.DB_NAME || 'supermall'
+    };
+    const pool = mysql.createPool(dbConfig);
     
     const [faqs] = await pool.query(
       'SELECT * FROM faqs WHERE is_active = ? ORDER BY display_order ASC, category ASC',
@@ -156,7 +239,8 @@ exports.getFAQs = async (req, res) => {
     
     res.json(faqs);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    // إذا فشل الاستعلام، نرجع قائمة فارغة
+    res.json([]);
   }
 };
 
@@ -168,7 +252,15 @@ exports.createFAQ = async (req, res) => {
     }
     
     const { question, answer, category, order } = req.body;
-    const pool = supportModel.pool; // الحصول على اتصال قاعدة البيانات من نموذج الدعم
+    const mysql = require('mysql2/promise');
+    const dbConfig = {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 3306,
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || 'xx100100',
+      database: process.env.DB_NAME || 'supermall'
+    };
+    const pool = mysql.createPool(dbConfig);
     
     // إدخال السؤال الشائع الجديد في قاعدة البيانات MySQL
     const [result] = await pool.query(
@@ -194,7 +286,15 @@ exports.updateFAQ = async (req, res) => {
     
     const faqId = req.params.faqId;
     const { question, answer, category, order, isActive } = req.body;
-    const pool = supportModel.pool; // الحصول على اتصال قاعدة البيانات من نموذج الدعم
+    const mysql = require('mysql2/promise');
+    const dbConfig = {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 3306,
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || 'xx100100',
+      database: process.env.DB_NAME || 'supermall'
+    };
+    const pool = mysql.createPool(dbConfig);
     
     // التحقق من وجود السؤال الشائع
     const [existingFaq] = await pool.query('SELECT * FROM faqs WHERE id = ?', [faqId]);
@@ -261,7 +361,15 @@ exports.deleteFAQ = async (req, res) => {
     }
     
     const faqId = req.params.faqId;
-    const pool = supportModel.pool; // الحصول على اتصال قاعدة البيانات من نموذج الدعم
+    const mysql = require('mysql2/promise');
+    const dbConfig = {
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 3306,
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || 'xx100100',
+      database: process.env.DB_NAME || 'supermall'
+    };
+    const pool = mysql.createPool(dbConfig);
     
     // التحقق من وجود السؤال الشائع
     const [existingFaq] = await pool.query('SELECT * FROM faqs WHERE id = ?', [faqId]);

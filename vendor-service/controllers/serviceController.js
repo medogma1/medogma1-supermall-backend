@@ -1,7 +1,7 @@
 // vendor-service/controllers/serviceController.js
 const Service = require('../models/Service');
 const Vendor = require('../models/Vendor');
-const logger = require('../logger');
+// const { logger } = require('../../utils/logger');
 
 // إنشاء خدمة جديدة
 exports.createService = async (req, res) => {
@@ -43,7 +43,7 @@ exports.createService = async (req, res) => {
       data: service
     });
   } catch (error) {
-    logger.error('خطأ في إنشاء خدمة جديدة:', error);
+    console.error('خطأ في إنشاء خدمة جديدة:', error);
     res.status(400).json({
       success: false,
       message: error.message || 'فشل في إنشاء الخدمة',
@@ -90,7 +90,7 @@ exports.getAllServices = async (req, res) => {
       data: services
     });
   } catch (error) {
-    logger.error('خطأ في الحصول على الخدمات:', error);
+    console.error('خطأ في الحصول على الخدمات:', error);
     res.status(500).json({
       success: false,
       message: 'فشل في الحصول على الخدمات',
@@ -116,7 +116,7 @@ exports.getServiceById = async (req, res) => {
       data: service
     });
   } catch (error) {
-    logger.error(`خطأ في الحصول على الخدمة بالمعرف ${req.params.id}:`, error);
+    console.error(`خطأ في الحصول على الخدمة بالمعرف ${req.params.id}:`, error);
     res.status(500).json({
       success: false,
       message: 'فشل في الحصول على الخدمة',
@@ -176,7 +176,7 @@ exports.updateService = async (req, res) => {
       data: updatedService
     });
   } catch (error) {
-    logger.error(`خطأ في تحديث الخدمة بالمعرف ${req.params.id}:`, error);
+    console.error(`خطأ في تحديث الخدمة بالمعرف ${req.params.id}:`, error);
     res.status(400).json({
       success: false,
       message: 'فشل في تحديث الخدمة',
@@ -213,7 +213,7 @@ exports.deleteService = async (req, res) => {
       message: 'تم حذف الخدمة بنجاح'
     });
   } catch (error) {
-    logger.error(`خطأ في حذف الخدمة بالمعرف ${req.params.id}:`, error);
+    console.error(`خطأ في حذف الخدمة بالمعرف ${req.params.id}:`, error);
     res.status(500).json({
       success: false,
       message: 'فشل في حذف الخدمة',
@@ -251,7 +251,7 @@ exports.updateServiceStatus = async (req, res) => {
       data: updatedService
     });
   } catch (error) {
-    logger.error(`خطأ في تحديث حالة الخدمة بالمعرف ${req.params.id}:`, error);
+    console.error(`خطأ في تحديث حالة الخدمة بالمعرف ${req.params.id}:`, error);
     res.status(500).json({
       success: false,
       message: 'فشل في تحديث حالة الخدمة',
@@ -287,7 +287,7 @@ exports.getVendorServices = async (req, res) => {
       data: services
     });
   } catch (error) {
-    logger.error(`خطأ في الحصول على خدمات البائع ${req.params.vendorId}:`, error);
+    console.error(`خطأ في الحصول على خدمات البائع ${req.params.vendorId}:`, error);
     res.status(500).json({
       success: false,
       message: 'فشل في الحصول على خدمات البائع',
@@ -317,7 +317,7 @@ exports.searchServices = async (req, res) => {
       data: services
     });
   } catch (error) {
-    logger.error('خطأ في البحث عن الخدمات:', error);
+    console.error('خطأ في البحث عن الخدمات:', error);
     res.status(500).json({
       success: false,
       message: 'فشل في البحث عن الخدمات',
@@ -341,7 +341,7 @@ exports.getFeaturedServices = async (req, res) => {
       data: services
     });
   } catch (error) {
-    logger.error('خطأ في الحصول على الخدمات المميزة:', error);
+    console.error('خطأ في الحصول على الخدمات المميزة:', error);
     res.status(500).json({
       success: false,
       message: 'فشل في الحصول على الخدمات المميزة',
@@ -390,7 +390,7 @@ exports.updateServiceRating = async (req, res) => {
       data: updatedService
     });
   } catch (error) {
-    logger.error(`خطأ في تحديث تقييم الخدمة بالمعرف ${req.params.id}:`, error);
+    console.error(`خطأ في تحديث تقييم الخدمة بالمعرف ${req.params.id}:`, error);
     res.status(500).json({
       success: false,
       message: 'فشل في تحديث تقييم الخدمة',

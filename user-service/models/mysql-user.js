@@ -8,10 +8,10 @@ require('dotenv').config();
 
 // إنشاء مجمع اتصالات قاعدة البيانات
 const pool = mysql.createPool({
-  host: process.env.MYSQL_HOST,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE,
+  host: process.env.DB_HOST || 'localhost',
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME || 'supermall',
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -41,7 +41,7 @@ function generateAuthToken(userId, role) {
 async function createUser(userData) {
   try {
     // التحقق من وجود المستخدم
-    const [existingUsers] = await pool.query(
+    const [existingUsers] = await pool.execute(
       'SELECT * FROM users WHERE email = ? OR username = ?',
       [userData.email, userData.username]
     );
@@ -66,7 +66,7 @@ async function createUser(userData) {
       .digest('hex');
     
     // إدخال المستخدم الجديد في قاعدة البيانات
-    const [result] = await pool.query(
+    const [result] = await pool.execute(
       `INSERT INTO users (
         first_name, last_name, username, email, password, phone_number,
         role, is_email_verified, is_phone_verified, is_active,
@@ -89,27 +89,20 @@ async function createUser(userData) {
     );
     
     // إدخال تفضيلات المستخدم
-    await pool.query(
+    await pool.execute(
       `INSERT INTO user_preferences (
-        user_id, language, currency, email_notifications, sms_notifications,
-        push_notifications, email_marketing, sms_marketing
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        user_id, language, notification_preferences
+      ) VALUES (?, ?, ?)`,
       [
         result.insertId,
         'ar',
-        'EGP',
-        true,
-        true,
-        true,
-        true,
-        false
+        JSON.stringify({})
       ]
     );
     
     // الحصول على المستخدم المدخل حديثًا
-    const [user] = await pool.query(
-      `SELECT u.*, p.language, p.currency, p.email_notifications, p.sms_notifications,
-        p.push_notifications, p.email_marketing, p.sms_marketing
+    const [user] = await pool.execute(
+      `SELECT u.*, p.language, p.notification_preferences
       FROM users u
       LEFT JOIN user_preferences p ON u.id = p.user_id
       WHERE u.id = ?`,
@@ -134,14 +127,13 @@ async function createUser(userData) {
 async function findUserByEmail(email, includePassword = false) {
   try {
     let query = `
-      SELECT u.*, p.language, p.currency, p.email_notifications, p.sms_notifications,
-        p.push_notifications, p.email_marketing, p.sms_marketing
+      SELECT u.*, p.language, p.notification_preferences
       FROM users u
       LEFT JOIN user_preferences p ON u.id = p.user_id
       WHERE u.email = ?
     `;
     
-    const [users] = await pool.query(query, [email]);
+    const [users] = await pool.execute(query, [email]);
     
     if (users.length === 0) {
       return {
@@ -171,9 +163,8 @@ async function findUserByEmail(email, includePassword = false) {
 // دالة للبحث عن مستخدم حسب المعرف
 async function findUserById(userId) {
   try {
-    const [users] = await pool.query(
-      `SELECT u.*, p.language, p.currency, p.email_notifications, p.sms_notifications,
-        p.push_notifications, p.email_marketing, p.sms_marketing
+    const [users] = await pool.execute(
+      `SELECT u.*, p.language, p.notification_preferences
       FROM users u
       LEFT JOIN user_preferences p ON u.id = p.user_id
       WHERE u.id = ?`,
@@ -234,7 +225,7 @@ async function loginUser(email, password) {
     }
     
     // إعادة تعيين محاولات تسجيل الدخول
-    await pool.query(
+    await pool.execute(
       'UPDATE users SET login_attempts = 0, lock_until = NULL, last_login = NOW() WHERE id = ?',
       [user.id]
     );
@@ -304,7 +295,7 @@ async function updateUser(userId, userData) {
     
     // تنفيذ استعلام التحديث إذا كانت هناك حقول للتحديث
     if (updateFields.length > 0) {
-      await pool.query(
+      await pool.execute(
         `UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`,
         updateValues
       );
@@ -320,10 +311,7 @@ async function updateUser(userId, userData) {
         prefUpdateValues.push(userData.preferences.language);
       }
       
-      if (userData.preferences.currency) {
-        prefUpdateFields.push('currency = ?');
-        prefUpdateValues.push(userData.preferences.currency);
-      }
+      // Currency field removed - using notification_preferences JSON instead
       
       if (userData.preferences.notifications) {
         if (userData.preferences.notifications.email !== undefined) {
@@ -359,7 +347,7 @@ async function updateUser(userId, userData) {
       
       // تنفيذ استعلام تحديث التفضيلات إذا كانت هناك حقول للتحديث
       if (prefUpdateFields.length > 0) {
-        await pool.query(
+        await pool.execute(
           `UPDATE user_preferences SET ${prefUpdateFields.join(', ')} WHERE user_id = ?`,
           prefUpdateValues
         );
@@ -381,7 +369,7 @@ async function updateUser(userId, userData) {
 async function changePassword(userId, currentPassword, newPassword) {
   try {
     // الحصول على المستخدم مع كلمة المرور
-    const [users] = await pool.query(
+    const [users] = await pool.execute(
       'SELECT id, password FROM users WHERE id = ?',
       [userId]
     );
@@ -409,7 +397,7 @@ async function changePassword(userId, currentPassword, newPassword) {
     const hashedPassword = await hashPassword(newPassword);
     
     // تحديث كلمة المرور وتاريخ تغييرها
-    await pool.query(
+    await pool.execute(
       'UPDATE users SET password = ?, password_changed_at = NOW() WHERE id = ?',
       [hashedPassword, userId]
     );
@@ -447,7 +435,7 @@ async function createPasswordResetToken(email) {
       .digest('hex');
     
     // تحديث قاعدة البيانات برمز إعادة التعيين وتاريخ انتهاء صلاحيته
-    await pool.query(
+    await pool.execute(
       'UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?',
       [hashedToken, new Date(Date.now() + 10 * 60 * 1000), userResult.user.id] // 10 دقائق
     );
@@ -475,7 +463,7 @@ async function resetPassword(token, newPassword) {
       .digest('hex');
     
     // البحث عن المستخدم برمز إعادة التعيين
-    const [users] = await pool.query(
+    const [users] = await pool.execute(
       'SELECT id FROM users WHERE password_reset_token = ? AND password_reset_expires > NOW()',
       [hashedToken]
     );
@@ -491,7 +479,7 @@ async function resetPassword(token, newPassword) {
     const hashedPassword = await hashPassword(newPassword);
     
     // تحديث كلمة المرور وإزالة رمز إعادة التعيين
-    await pool.query(
+    await pool.execute(
       `UPDATE users SET 
         password = ?, 
         password_reset_token = NULL, 
@@ -524,7 +512,7 @@ async function verifyEmail(token) {
       .digest('hex');
     
     // البحث عن المستخدم برمز التحقق
-    const [users] = await pool.query(
+    const [users] = await pool.execute(
       'SELECT id FROM users WHERE email_verification_token = ? AND email_verification_expires > NOW()',
       [hashedToken]
     );
@@ -537,7 +525,7 @@ async function verifyEmail(token) {
     }
     
     // تحديث حالة التحقق وإزالة الرمز
-    await pool.query(
+    await pool.execute(
       `UPDATE users SET 
         is_email_verified = TRUE, 
         email_verification_token = NULL, 
@@ -559,6 +547,181 @@ async function verifyEmail(token) {
   }
 }
 
+// دالة للحصول على جميع المستخدمين مع الترشيح والصفحات
+async function getAllUsers({ page = 1, limit = 10, sort = 'u.created_at DESC', filters = {} }) {
+  try {
+    // بناء استعلام SQL
+    let query = `
+      SELECT u.*, p.language, p.notification_preferences
+      FROM users u
+      LEFT JOIN user_preferences p ON u.id = p.user_id
+      WHERE 1=1
+    `;
+    
+    // إضافة شروط الترشيح
+    const queryParams = [];
+    
+    if (filters.role) {
+      query += ' AND u.role = ?';
+      queryParams.push(filters.role);
+    }
+    
+    if (filters.isActive !== undefined) {
+      query += ' AND u.is_active = ?';
+      queryParams.push(filters.isActive);
+    }
+    
+    if (filters.isEmailVerified !== undefined) {
+      query += ' AND u.is_email_verified = ?';
+      queryParams.push(filters.isEmailVerified);
+    }
+    
+    if (filters.search) {
+      query += ` AND (u.first_name LIKE ? OR u.last_name LIKE ? OR u.email LIKE ? OR u.username LIKE ?)`;
+      const searchTerm = `%${filters.search}%`;
+      queryParams.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
+    
+    // استعلام لحساب إجمالي المستخدمين
+    const countQuery = query.replace(
+      'SELECT u.*, p.language, p.notification_preferences',
+      'SELECT COUNT(*) as total'
+    );
+    
+    // تنفيذ استعلام العدد
+    const [countResult] = await pool.execute(countQuery, queryParams);
+    const totalUsers = countResult[0].total;
+    
+    // إضافة الفرز والحد للاستعلام الرئيسي
+    query += ` ORDER BY ${sort}`;
+    query += ' LIMIT ? OFFSET ?';
+    
+    // حساب الإزاحة
+    const offset = (page - 1) * limit;
+    queryParams.push(parseInt(limit), parseInt(offset));
+    
+    // تنفيذ الاستعلام الرئيسي
+    const [users] = await pool.execute(query, queryParams);
+    
+    // إزالة كلمات المرور من النتائج
+    users.forEach(user => {
+      delete user.password;
+      delete user.password_reset_token;
+      delete user.password_reset_expires;
+      delete user.email_verification_token;
+      delete user.email_verification_expires;
+    });
+    
+    return {
+      success: true,
+      users,
+      totalUsers,
+      page,
+      limit
+    };
+  } catch (error) {
+    console.error('Error getting all users:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// دالة للحصول على إحصائيات المستخدمين
+async function getUserStats() {
+  try {
+    // إحصائيات حسب الدور
+    const [roleStats] = await pool.execute(`
+      SELECT 
+        role, 
+        COUNT(*) as total, 
+        SUM(CASE WHEN is_active = TRUE THEN 1 ELSE 0 END) as active,
+        SUM(CASE WHEN is_email_verified = TRUE THEN 1 ELSE 0 END) as verified
+      FROM users
+      GROUP BY role
+    `);
+    
+    // تنسيق إحصائيات الدور
+    const formattedRoleStats = {};
+    roleStats.forEach(stat => {
+      formattedRoleStats[stat.role] = {
+        total: stat.total,
+        active: stat.active,
+        verified: stat.verified
+      };
+    });
+    
+    // إحصائيات التسجيل
+    const today = new Date();
+    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
+    const lastYear = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
+    
+    // تنسيق التواريخ لاستخدامها في استعلام SQL
+    const lastYearFormatted = lastYear.toISOString().split('T')[0];
+    const lastMonthFormatted = lastMonth.toISOString().split('T')[0];
+    
+    // إحصائيات التسجيل الشهرية
+    const [monthlyStats] = await pool.execute(`
+      SELECT 
+        YEAR(created_at) as year, 
+        MONTH(created_at) as month, 
+        COUNT(*) as count
+      FROM users
+      WHERE created_at >= ?
+      GROUP BY YEAR(created_at), MONTH(created_at)
+      ORDER BY year ASC, month ASC
+    `, [lastYearFormatted]);
+    
+    // إحصائيات التسجيل اليومية (آخر 30 يومًا)
+    const [dailyStats] = await pool.execute(`
+      SELECT 
+        DATE(created_at) as date, 
+        COUNT(*) as count
+      FROM users
+      WHERE created_at >= ?
+      GROUP BY DATE(created_at)
+      ORDER BY date ASC
+    `, [lastMonthFormatted]);
+    
+    // إجمالي المستخدمين
+    const [totalUsers] = await pool.execute('SELECT COUNT(*) as total FROM users');
+    
+    // المستخدمين النشطين
+    const [activeUsers] = await pool.execute('SELECT COUNT(*) as total FROM users WHERE is_active = TRUE');
+    
+    // المستخدمين المتحققين
+    const [verifiedUsers] = await pool.execute('SELECT COUNT(*) as total FROM users WHERE is_email_verified = TRUE');
+    
+    // المستخدمين الجدد (آخر 30 يومًا)
+    const [newUsers] = await pool.execute(
+      'SELECT COUNT(*) as total FROM users WHERE created_at >= ?', 
+      [lastMonthFormatted]
+    );
+    
+    return {
+      success: true,
+      stats: {
+        byRole: formattedRoleStats,
+        monthly: monthlyStats,
+        daily: dailyStats,
+        totals: {
+          all: totalUsers[0].total,
+          active: activeUsers[0].total,
+          verified: verifiedUsers[0].total,
+          newLast30Days: newUsers[0].total
+        }
+      }
+    };
+  } catch (error) {
+    console.error('Error getting user stats:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
 // تصدير الدوال
 module.exports = {
   pool,
@@ -572,5 +735,7 @@ module.exports = {
   resetPassword,
   verifyEmail,
   generateAuthToken,
-  comparePassword
+  comparePassword,
+  getAllUsers,
+  getUserStats
 };

@@ -22,7 +22,7 @@ async function addAnalyticsEvent(eventData) {
   try {
     const { event_type, entity_type, entity_id, user_id, metadata } = eventData;
     
-    const [result] = await pool.query(
+    const [result] = await pool.execute(
       'INSERT INTO analytics_events (event_type, entity_type, entity_id, user_id, metadata) VALUES (?, ?, ?, ?, ?)',
       [event_type, entity_type, entity_id, user_id, JSON.stringify(metadata || {})]
     );
@@ -47,7 +47,7 @@ async function getAnalyticsByEventType(eventType, startDate, endDate) {
     
     query += ' ORDER BY created_at DESC';
     
-    const [rows] = await pool.query(query, params);
+    const [rows] = await pool.execute(query, params);
     
     // تحويل حقل metadata من JSON string إلى كائن JavaScript
     return rows.map(row => ({
@@ -73,7 +73,7 @@ async function getAnalyticsByEntity(entityType, entityId, startDate, endDate) {
     
     query += ' ORDER BY created_at DESC';
     
-    const [rows] = await pool.query(query, params);
+    const [rows] = await pool.execute(query, params);
     
     // تحويل حقل metadata من JSON string إلى كائن JavaScript
     return rows.map(row => ({
@@ -91,7 +91,7 @@ async function createAnalyticsReport(reportData) {
   try {
     const { report_type, report_data, start_date, end_date } = reportData;
     
-    const [result] = await pool.query(
+    const [result] = await pool.execute(
       'INSERT INTO analytics_reports (report_type, report_data, start_date, end_date) VALUES (?, ?, ?, ?)',
       [report_type, JSON.stringify(report_data), start_date, end_date]
     );
@@ -116,7 +116,7 @@ async function getAnalyticsReports(reportType, startDate, endDate) {
     
     query += ' ORDER BY created_at DESC';
     
-    const [rows] = await pool.query(query, params);
+    const [rows] = await pool.execute(query, params);
     
     // تحويل حقل report_data من JSON string إلى كائن JavaScript
     return rows.map(row => ({
@@ -143,7 +143,7 @@ async function getSalesStatistics(startDate, endDate) {
       ORDER BY date
     `;
     
-    const [rows] = await pool.query(query, [startDate, endDate]);
+    const [rows] = await pool.execute(query, [startDate, endDate]);
     return rows;
   } catch (error) {
     console.error('خطأ في الحصول على إحصائيات المبيعات:', error);
@@ -169,7 +169,7 @@ async function getTopSellingProducts(limit = 10) {
       LIMIT ?
     `;
     
-    const [rows] = await pool.query(query, [limit]);
+    const [rows] = await pool.execute(query, [limit]);
     return rows;
   } catch (error) {
     console.error('خطأ في الحصول على المنتجات الأكثر مبيعًا:', error);
@@ -190,7 +190,7 @@ async function getUserStatistics() {
       GROUP BY role
     `;
     
-    const [rows] = await pool.query(query);
+    const [rows] = await pool.execute(query);
     return rows;
   } catch (error) {
     console.error('خطأ في الحصول على إحصائيات المستخدمين:', error);

@@ -5,7 +5,7 @@ const reviewController = require('../controllers/reviewController');
 // استيراد middleware للمصادقة
 // ملاحظة: يجب تكييف هذا المسار حسب هيكل المشروع الخاص بك
 // قد تحتاج إلى إنشاء نسخة محلية من middleware المصادقة أو استخدام مكتبة مشتركة
-const authMiddleware = require('../middleware/authMiddleware');
+const { authenticate: authMiddleware } = require('../middleware/authMiddleware');
 
 // افتراض وجود middleware للتحقق من صلاحيات المسؤول
 const isAdmin = (req, res, next) => {
@@ -21,6 +21,9 @@ const isAdmin = (req, res, next) => {
 // إضافة مراجعة لمنتج
 router.post('/product', authMiddleware, reviewController.addProductReview);
 
+// إضافة مراجعة بمعرف محدد
+router.post('/:id', authMiddleware, reviewController.addReviewById);
+
 // إضافة مراجعة لبائع
 router.post('/vendor', authMiddleware, reviewController.addVendorReview);
 
@@ -29,6 +32,13 @@ router.get('/product/:productId', reviewController.getProductReviews);
 
 // جلب مراجعات بائع
 router.get('/vendor/:vendorId', reviewController.getVendorReviews);
+
+// إضافة مراجعة لبائع بمعرف محدد (مسار بديل للاختبارات)
+router.post('/vendor/:vendorId', authMiddleware, (req, res) => {
+  // نسخ vendorId من المسار إلى body
+  req.body.vendorId = req.params.vendorId;
+  reviewController.addVendorReview(req, res);
+});
 
 // الإبلاغ عن مراجعة
 router.post('/report/:reviewId', authMiddleware, reviewController.reportReview);

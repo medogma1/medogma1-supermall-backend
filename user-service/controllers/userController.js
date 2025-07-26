@@ -654,9 +654,17 @@ exports.getAllUsers = async (req, res) => {
     const result = await userModel.getAllUsers({
       page,
       limit,
-      sort: req.query.sort || 'createdAt DESC',
+      sort: req.query.sort || 'u.created_at DESC',
       filters
     });
+    
+    // التحقق من نجاح العملية
+    if (!result.success) {
+      return res.status(400).json({
+        status: 'fail',
+        message: result.error
+      });
+    }
     
     res.status(200).json({
       status: 'success',
@@ -774,62 +782,21 @@ exports.deleteUser = async (req, res) => {
 // إحصائيات المستخدمين
 exports.getUserStats = async (req, res) => {
   try {
-    const stats = await User.aggregate([
-      {
-        $group: {
-          _id: '$role',
-          count: { $sum: 1 },
-          active: {
-            $sum: { $cond: [{ $eq: ['$isActive', true] }, 1, 0] }
-          },
-          verified: {
-            $sum: { $cond: [{ $eq: ['$isEmailVerified', true] }, 1, 0] }
-          }
-        }
-      }
-    ]);
+    // استخدام دالة getUserStats من نموذج MySQL
+    const result = await userModel.getUserStats();
     
-    // إعادة تنظيم البيانات
-    const formattedStats = {};
-    stats.forEach(stat => {
-      formattedStats[stat._id] = {
-        total: stat.count,
-        active: stat.active,
-        verified: stat.verified
-      };
-    });
+    // التحقق من نجاح العملية
+    if (!result.success) {
+      return res.status(400).json({
+        status: 'fail',
+        message: result.error
+      });
+    }
     
-    // إحصائيات التسجيل
-    const today = new Date();
-    const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate());
-    const lastYear = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
-    
-    const registrationStats = await User.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: lastYear }
-        }
-      },
-      {
-        $group: {
-          _id: {
-            month: { $month: '$createdAt' },
-            year: { $year: '$createdAt' }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { '_id.year': 1, '_id.month': 1 }
-      }
-    ]);
-    
+    // إرسال الإحصائيات
     res.status(200).json({
       status: 'success',
-      data: {
-        roleStats: formattedStats,
-        registrationStats
-      }
+      data: result.stats
     });
   } catch (err) {
     res.status(400).json({

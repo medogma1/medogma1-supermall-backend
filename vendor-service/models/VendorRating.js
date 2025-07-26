@@ -34,7 +34,7 @@ function snakeToCamel(obj) {
 // دالة مساعدة لتحويل camelCase إلى snake_case
 function camelToSnake(obj) {
   if (obj === null || obj === undefined || typeof obj !== 'object') {
-    return obj;
+    return obj === undefined ? null : obj;
   }
 
   if (Array.isArray(obj)) {
@@ -45,11 +45,14 @@ function camelToSnake(obj) {
     const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
     const value = obj[key];
     
+    // تحويل undefined إلى null
+    const cleanValue = value === undefined ? null : value;
+    
     // تحويل الكائنات إلى JSON للتخزين
     if (snakeKey === 'metadata') {
-      acc[snakeKey] = value !== null && typeof value === 'object' ? JSON.stringify(value) : value;
+      acc[snakeKey] = cleanValue !== null && typeof cleanValue === 'object' ? JSON.stringify(cleanValue) : cleanValue;
     } else {
-      acc[snakeKey] = value !== null && typeof value === 'object' ? camelToSnake(value) : value;
+      acc[snakeKey] = cleanValue !== null && typeof cleanValue === 'object' ? camelToSnake(cleanValue) : cleanValue;
     }
     
     return acc;
@@ -86,7 +89,8 @@ class VendorRating {
       // إعداد استعلام الإدراج
       const fields = Object.keys(data).join(', ');
       const placeholders = Object.keys(data).map(() => '?').join(', ');
-      const values = Object.values(data);
+      // تحويل قيم undefined إلى null
+      const values = Object.values(data).map(value => value === undefined ? null : value);
       
       const query = `INSERT INTO vendor_ratings (${fields}) VALUES (${placeholders})`;
       
@@ -357,7 +361,8 @@ class VendorRating {
       
       // إعداد استعلام التحديث
       const setClause = Object.keys(data).map(key => `${key} = ?`).join(', ');
-      const values = [...Object.values(data), id];
+      // تحويل قيم undefined إلى null
+      const values = [...Object.values(data).map(value => value === undefined ? null : value), id];
       
       const query = `UPDATE vendor_ratings SET ${setClause} WHERE id = ?`;
       

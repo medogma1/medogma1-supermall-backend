@@ -1,21 +1,6 @@
 // order-service/models/mysql-payment.js
-const mysql = require('mysql2/promise');
+const { pool } = require('../config/database');
 require('dotenv').config();
-
-// إعدادات الاتصال بقاعدة البيانات MySQL الموحدة
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'xx100100',
-  database: process.env.DB_NAME || 'supermall',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
-
-// إنشاء تجمع اتصالات
-const pool = mysql.createPool(dbConfig);
 
 // تعريف الثوابت
 const MIN_AMOUNT = 0.0;
@@ -85,14 +70,14 @@ async function createPayment(paymentData) {
     }
     
     // إنشاء الدفعة
-    const [result] = await pool.query(
+    const [result] = await pool.execute(
       `INSERT INTO payments 
        (order_id, user_id, amount, currency, status, method, payment_gateway, transaction_id) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [order_id, user_id, amount, currency, PAYMENT_STATUS.PENDING, method, payment_gateway, transaction_id]
     );
     
-    const [newPayment] = await pool.query(
+    const [newPayment] = await pool.execute(
       'SELECT * FROM payments WHERE id = ?',
       [result.insertId]
     );
@@ -111,7 +96,7 @@ async function createPayment(paymentData) {
  */
 async function getPaymentById(paymentId) {
   try {
-    const [payments] = await pool.query(
+    const [payments] = await pool.execute(
       'SELECT * FROM payments WHERE id = ?',
       [paymentId]
     );
@@ -140,7 +125,7 @@ async function getPaymentById(paymentId) {
  */
 async function getPaymentByOrderId(orderId) {
   try {
-    const [payments] = await pool.query(
+    const [payments] = await pool.execute(
       'SELECT * FROM payments WHERE order_id = ? ORDER BY created_at DESC',
       [orderId]
     );
@@ -224,7 +209,7 @@ async function updatePaymentStatus(paymentId, status, additionalData = {}) {
     updateFields.push('updated_at = NOW()');
     updateValues.push(paymentId);
     
-    await pool.query(
+    await pool.execute(
       `UPDATE payments SET ${updateFields.join(', ')} WHERE id = ?`,
       updateValues
     );
@@ -245,7 +230,7 @@ async function updatePaymentStatus(paymentId, status, additionalData = {}) {
  */
 async function updateGatewayResponse(paymentId, gatewayResponse) {
   try {
-    await pool.query(
+    await pool.execute(
       'UPDATE payments SET gateway_response = ?, updated_at = NOW() WHERE id = ?',
       [JSON.stringify(gatewayResponse), paymentId]
     );
@@ -355,13 +340,13 @@ async function getUserPayments(userId, page = 1, limit = 20) {
     const offset = (page - 1) * limit;
     
     // الحصول على الدفعات
-    const [payments] = await pool.query(
+    const [payments] = await pool.execute(
       'SELECT * FROM payments WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
       [userId, limit, offset]
     );
     
     // الحصول على العدد الإجمالي
-    const [countResult] = await pool.query(
+    const [countResult] = await pool.execute(
       'SELECT COUNT(*) as total FROM payments WHERE user_id = ?',
       [userId]
     );

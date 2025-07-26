@@ -23,8 +23,8 @@ async function createNotification(notificationData) {
     const { user_id, title, message, notification_type, reference_id, reference_type } = notificationData;
     
     const [result] = await pool.query(
-      'INSERT INTO notifications (user_id, title, message, notification_type, reference_id, reference_type) VALUES (?, ?, ?, ?, ?, ?)',
-      [user_id, title, message, notification_type, reference_id || null, reference_type || null]
+      'INSERT INTO notifications (user_id, title, message, type, reference_id) VALUES (?, ?, ?, ?, ?)',
+      [user_id, title, message, notification_type, reference_id || null]
     );
     
     const [newNotification] = await pool.query(
@@ -200,5 +200,6 @@ module.exports = {
   deleteNotification,
   getUnreadNotificationCount,
   getNotificationSettings,
-  updateNotificationSettings
+  updateNotificationSettings,
+  pool
 };

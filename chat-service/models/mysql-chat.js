@@ -21,7 +21,7 @@ const pool = mysql.createPool(dbConfig);
 async function createConversation(userId, vendorId) {
   try {
     // التحقق من وجود محادثة سابقة
-    const [existingConversations] = await pool.query(
+    const [existingConversations] = await pool.execute(
       'SELECT * FROM chat_conversations WHERE user_id = ? AND vendor_id = ?',
       [userId, vendorId]
     );
@@ -31,12 +31,12 @@ async function createConversation(userId, vendorId) {
     }
 
     // إنشاء محادثة جديدة
-    const [result] = await pool.query(
+    const [result] = await pool.execute(
       'INSERT INTO chat_conversations (user_id, vendor_id) VALUES (?, ?)',
       [userId, vendorId]
     );
 
-    const [newConversation] = await pool.query(
+    const [newConversation] = await pool.execute(
       'SELECT * FROM chat_conversations WHERE id = ?',
       [result.insertId]
     );
@@ -51,18 +51,18 @@ async function createConversation(userId, vendorId) {
 // إرسال رسالة جديدة
 async function sendMessage(conversationId, senderId, receiverId, messageText, attachments = null) {
   try {
-    const [result] = await pool.query(
+    const [result] = await pool.execute(
       'INSERT INTO chat_messages (conversation_id, sender_id, receiver_id, message_text, attachments) VALUES (?, ?, ?, ?, ?)',
       [conversationId, senderId, receiverId, messageText, attachments ? JSON.stringify(attachments) : null]
     );
 
     // تحديث آخر رسالة في المحادثة
-    await pool.query(
+    await pool.execute(
       'UPDATE chat_conversations SET last_message_text = ?, last_message_time = NOW(), unread_count = unread_count + 1 WHERE id = ?',
       [messageText, conversationId]
     );
 
-    const [newMessage] = await pool.query(
+    const [newMessage] = await pool.execute(
       'SELECT * FROM chat_messages WHERE id = ?',
       [result.insertId]
     );
@@ -79,7 +79,7 @@ async function getConversationMessages(conversationId, page = 1, limit = 20) {
   try {
     const offset = (page - 1) * limit;
 
-    const [messages] = await pool.query(
+    const [messages] = await pool.execute(
       'SELECT * FROM chat_messages WHERE conversation_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?',
       [conversationId, limit, offset]
     );
@@ -98,7 +98,7 @@ async function getConversationMessages(conversationId, page = 1, limit = 20) {
 // الحصول على محادثات المستخدم
 async function getUserConversations(userId) {
   try {
-    const [conversations] = await pool.query(
+    const [conversations] = await pool.execute(
       `SELECT c.*, 
         u.username as user_name, u.profile_image as user_image,
         v.store_name as vendor_name, v.store_logo_url as vendor_image
@@ -121,13 +121,13 @@ async function getUserConversations(userId) {
 async function markMessagesAsRead(conversationId, userId) {
   try {
     // تحديث حالة قراءة الرسائل
-    await pool.query(
+    await pool.execute(
       'UPDATE chat_messages SET is_read = TRUE WHERE conversation_id = ? AND receiver_id = ? AND is_read = FALSE',
       [conversationId, userId]
     );
 
     // إعادة تعيين عداد الرسائل غير المقروءة
-    await pool.query(
+    await pool.execute(
       'UPDATE chat_conversations SET unread_count = 0 WHERE id = ?',
       [conversationId]
     );
@@ -142,7 +142,7 @@ async function markMessagesAsRead(conversationId, userId) {
 // الحصول على عدد الرسائل غير المقروءة
 async function getUnreadMessageCount(userId) {
   try {
-    const [result] = await pool.query(
+    const [result] = await pool.execute(
       `SELECT SUM(unread_count) as total_unread
       FROM chat_conversations
       WHERE user_id = ? OR vendor_id IN (SELECT id FROM vendors WHERE user_id = ?)`,
@@ -160,7 +160,7 @@ async function getUnreadMessageCount(userId) {
 async function closeConversation(conversationId, userId) {
   try {
     // التحقق من أن المستخدم مشارك في المحادثة
-    const [conversation] = await pool.query(
+    const [conversation] = await pool.execute(
       'SELECT * FROM chat_conversations WHERE id = ? AND (user_id = ? OR vendor_id IN (SELECT id FROM vendors WHERE user_id = ?))',
       [conversationId, userId, userId]
     );
@@ -170,7 +170,7 @@ async function closeConversation(conversationId, userId) {
     }
 
     // تحديث حالة المحادثة إلى غير نشطة
-    await pool.query(
+    await pool.execute(
       'UPDATE chat_conversations SET is_active = FALSE WHERE id = ?',
       [conversationId]
     );
@@ -185,7 +185,7 @@ async function closeConversation(conversationId, userId) {
 // الحصول على مشاركي المحادثة
 async function getConversationParticipants(conversationId) {
   try {
-    const [conversation] = await pool.query(
+    const [conversation] = await pool.execute(
       'SELECT * FROM chat_conversations WHERE id = ?',
       [conversationId]
     );
@@ -195,12 +195,12 @@ async function getConversationParticipants(conversationId) {
     }
 
     // في نموذج MySQL الحالي، المشاركون هم فقط المستخدم والبائع
-    const [user] = await pool.query(
+    const [user] = await pool.execute(
       'SELECT id, username, email, profile_image FROM users WHERE id = ?',
       [conversation[0].user_id]
     );
 
-    const [vendor] = await pool.query(
+    const [vendor] = await pool.execute(
       'SELECT v.id, v.store_name, v.store_logo_url, u.email FROM vendors v JOIN users u ON v.user_id = u.id WHERE v.id = ?',
       [conversation[0].vendor_id]
     );

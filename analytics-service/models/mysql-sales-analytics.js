@@ -1,5 +1,6 @@
 // analytics-service/models/mysql-sales-analytics.js
 const mysql = require('mysql2/promise');
+const { parseJsonField } = require('../../utils/jsonUtils');
 require('dotenv').config();
 
 // إعدادات الاتصال بقاعدة البيانات MySQL الموحدة
@@ -98,12 +99,12 @@ async function getSalesAnalytics(storeId, period) {
       return null;
     }
     
-    // تحويل الحقول من JSON string إلى كائنات JavaScript
+    // تحويل الحقول من JSON string إلى كائنات JavaScript مع معالجة الأخطاء
     const salesAnalytics = {
       ...rows[0],
-      revenueByCategory: JSON.parse(rows[0].revenue_by_category || '{}'),
-      ordersByStatus: JSON.parse(rows[0].orders_by_status || '{}'),
-      dailySales: JSON.parse(rows[0].daily_sales || '[]')
+      revenueByCategory: parseJsonField(rows[0].revenue_by_category, {}),
+      ordersByStatus: parseJsonField(rows[0].orders_by_status, {}),
+      dailySales: parseJsonField(rows[0].daily_sales, [])
     };
     
     return salesAnalytics;

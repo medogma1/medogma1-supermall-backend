@@ -1,5 +1,6 @@
 // analytics-service/models/mysql-inventory-analytics.js
 const mysql = require('mysql2/promise');
+const { parseJsonField } = require('../../utils/jsonUtils');
 require('dotenv').config();
 
 // إعدادات الاتصال بقاعدة البيانات MySQL الموحدة
@@ -92,12 +93,12 @@ async function getInventoryAnalytics(storeId, period) {
       return null;
     }
     
-    // تحويل الحقول من JSON string إلى كائنات JavaScript
+    // تحويل الحقول من JSON string إلى كائنات JavaScript مع معالجة الأخطاء
     const inventoryAnalytics = {
       ...rows[0],
-      stockByCategory: JSON.parse(rows[0].stock_by_category || '{}'),
-      topPerformingProducts: JSON.parse(rows[0].top_performing_products || '[]'),
-      lowPerformingProducts: JSON.parse(rows[0].low_performing_products || '[]')
+      stockByCategory: parseJsonField(rows[0].stock_by_category, {}),
+      topPerformingProducts: parseJsonField(rows[0].top_performing_products, []),
+      lowPerformingProducts: parseJsonField(rows[0].low_performing_products, [])
     };
     
     return inventoryAnalytics;

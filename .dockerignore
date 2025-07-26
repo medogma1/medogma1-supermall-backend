@@ -1,0 +1,62 @@
+# تجاهل مجلدات التبعيات
+node_modules
+npm-debug.log
+
+# تجاهل ملفات البيئة
+.env
+.env.*
+!.env.example
+
+# تجاهل ملفات التطوير
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# تجاهل ملفات الاختبار
+__tests__
+tests
+test
+*.test.js
+*.spec.js
+coverage
+
+# تجاهل ملفات التوثيق
+*.md
+LICENSE
+
+# تجاهل ملفات Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# تجاهل ملفات السجلات
+logs
+*.log
+
+# تجاهل ملفات النسخ الاحتياطي
+*.bak
+
+# تجاهل ملفات التكوين الخاصة بالتطوير
+.eslintrc*
+.prettierrc*
+.editorconfig
+.gitattributes
+
+# تجاهل ملفات البناء
+dist
+build
+
+# تجاهل ملفات التخزين المؤقت
+.npm
+.cache
+
+# تجاهل ملفات الرفع
+uploads/*
+!uploads/.gitkeep
+
+# تجاهل ملفات أخرى
+*.zip
+*.tar.gz
+*.tgz

@@ -87,7 +87,8 @@ class WithdrawalRequest {
       // إعداد استعلام الإدراج
       const fields = Object.keys(data).join(', ');
       const placeholders = Object.keys(data).map(() => '?').join(', ');
-      const values = Object.values(data);
+      // تحويل قيم undefined إلى null
+      const values = Object.values(data).map(value => value === undefined ? null : value);
       
       const query = `INSERT INTO withdrawal_requests (${fields}) VALUES (${placeholders})`;
       

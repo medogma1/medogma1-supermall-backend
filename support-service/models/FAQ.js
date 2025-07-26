@@ -28,12 +28,12 @@ const FAQ = {
     try {
       const { question, answer, category, order, isActive } = faqData;
       
-      const [result] = await pool.query(
+      const [result] = await pool.execute(
         'INSERT INTO faqs (question, answer, category, display_order, is_active) VALUES (?, ?, ?, ?, ?)',
         [question, answer, category, order || 0, isActive === undefined ? true : isActive]
       );
       
-      const [newFAQ] = await pool.query(
+      const [newFAQ] = await pool.execute(
         'SELECT * FROM faqs WHERE id = ?',
         [result.insertId]
       );
@@ -48,7 +48,7 @@ const FAQ = {
   // الحصول على سؤال شائع بواسطة المعرف
   findById: async function(faqId) {
     try {
-      const [faq] = await pool.query(
+      const [faq] = await pool.execute(
         'SELECT * FROM faqs WHERE id = ?',
         [faqId]
       );
@@ -93,7 +93,7 @@ const FAQ = {
       sqlQuery += ' ORDER BY display_order ASC, created_at DESC LIMIT ? OFFSET ?';
       params.push(limit, offset);
       
-      const [faqs] = await pool.query(sqlQuery, params);
+      const [faqs] = await pool.execute(sqlQuery, params);
       
       return { success: true, faqs };
     } catch (error) {
@@ -108,7 +108,7 @@ const FAQ = {
       const { question, answer, category, order, isActive } = updateData;
       
       // التحقق من وجود السؤال الشائع
-      const [faq] = await pool.query(
+      const [faq] = await pool.execute(
         'SELECT * FROM faqs WHERE id = ?',
         [faqId]
       );
@@ -155,9 +155,9 @@ const FAQ = {
       const updateQuery = `UPDATE faqs SET ${updateFields.join(', ')} WHERE id = ?`;
       params.push(faqId);
       
-      await pool.query(updateQuery, params);
+      await pool.execute(updateQuery, params);
       
-      const [updatedFAQ] = await pool.query(
+      const [updatedFAQ] = await pool.execute(
         'SELECT * FROM faqs WHERE id = ?',
         [faqId]
       );
@@ -173,7 +173,7 @@ const FAQ = {
   findByIdAndDelete: async function(faqId) {
     try {
       // التحقق من وجود السؤال الشائع
-      const [faq] = await pool.query(
+      const [faq] = await pool.execute(
         'SELECT * FROM faqs WHERE id = ?',
         [faqId]
       );
@@ -183,7 +183,7 @@ const FAQ = {
       }
       
       // حذف السؤال الشائع
-      await pool.query(
+      await pool.execute(
         'DELETE FROM faqs WHERE id = ?',
         [faqId]
       );

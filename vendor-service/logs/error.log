@@ -31,3 +31,341 @@
 2025-07-09 07:44:09 [[31merror[39m]: [31mError fetching vendors: (intermediate value) is not iterable[39m
 2025-07-09 07:46:36 [[31merror[39m]: [31mError fetching vendors: (intermediate value) is not iterable[39m
 2025-07-09 07:47:31 [[31merror[39m]: [31mError fetching vendors: (intermediate value) is not iterable[39m
+2025-07-12 14:17:24 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-12 14:17:24 [[31merror[39m]: [31mError in findAll operation for active vendors: (intermediate value) is not iterable[39m
+2025-07-12 14:21:23 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-12 14:21:24 [[31merror[39m]: [31mError in findAll operation for active vendors: (intermediate value) is not iterable[39m
+2025-07-12 14:56:42 [[31merror[39m]: [31mError creating vendor: (intermediate value) is not iterable[39m
+2025-07-12 14:56:42 [[31merror[39m]: [31mError in findAll operation for active vendors: (intermediate value) is not iterable[39m
+2025-07-12 14:57:20 [[31merror[39m]: [31mError creating vendor: (intermediate value) is not iterable[39m
+2025-07-12 14:57:20 [[31merror[39m]: [31mError in findAll operation for active vendors: (intermediate value) is not iterable[39m
+2025-07-12 14:57:44 [[31merror[39m]: [31mError creating vendor: (intermediate value) is not iterable[39m
+2025-07-12 14:57:44 [[31merror[39m]: [31mError in findAll operation for active vendors: (intermediate value) is not iterable[39m
+2025-07-12 14:58:30 [[31merror[39m]: [31mError creating vendor: (intermediate value) is not iterable[39m
+2025-07-12 14:58:30 [[31merror[39m]: [31mError in findAll operation for active vendors: (intermediate value) is not iterable[39m
+2025-07-12 14:58:55 [[31merror[39m]: [31mError creating vendor: (intermediate value) is not iterable[39m
+2025-07-12 14:58:55 [[31merror[39m]: [31mError in findAll operation for active vendors: (intermediate value) is not iterable[39m
+2025-07-12 15:00:57 [[31merror[39m]: [31mError creating vendor: (intermediate value) is not iterable[39m
+2025-07-12 15:00:57 [[31merror[39m]: [31mError in findAll operation for active vendors: (intermediate value) is not iterable[39m
+2025-07-12 15:02:20 [[31merror[39m]: [31mError creating vendor: (intermediate value) is not iterable[39m
+2025-07-12 15:02:20 [[31merror[39m]: [31mError in findAll operation for active vendors: (intermediate value) is not iterable[39m
+2025-07-12 15:07:34 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-12 15:10:52 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-12 15:11:36 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-12 15:18:26 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-12 15:19:15 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-12 15:25:02 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 01:42:42 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 01:52:56 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 01:53:55 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:02:16 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:05:22 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:11:50 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:15:20 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:24:15 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:24:44 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:26:00 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:29:33 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 02:30:48 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:39:56 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:39:57 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:39:59 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:40:02 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:41:16 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:41:17 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:41:19 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:41:22 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:48:27 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:48:28 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:48:30 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 02:48:33 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 10:41:49 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 10:41:50 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 10:41:52 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 10:41:55 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 11:58:42 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 11:58:43 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 11:58:45 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 11:58:48 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:00:48 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:00:50 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:00:52 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:00:55 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:03:26 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:03:27 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:03:29 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:03:32 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:05:54 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:05:55 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:05:57 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:06:00 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:08:11 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:08:12 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:08:15 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:08:18 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:09:28 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:09:29 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:09:31 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:09:34 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:10:48 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:10:49 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:10:51 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:10:54 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:11:08 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:11:09 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:11:11 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:11:14 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:12:14 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:12:15 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:12:17 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:12:20 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:14:24 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:14:25 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:14:27 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:14:30 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:15:36 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:15:37 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:15:39 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:15:43 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:20:28 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:20:29 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:20:31 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:20:35 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:22:02 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:25:29 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:25:30 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:25:32 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:25:35 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:27:28 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:27:29 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:27:31 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:27:34 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:28:30 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:28:31 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:28:33 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:28:36 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:32:30 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:32:31 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:32:34 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:32:37 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:34:07 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:34:08 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:34:10 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:34:13 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:35:46 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:35:47 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:35:49 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:35:53 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:38:07 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:38:08 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:38:10 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:38:13 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:40:37 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:40:38 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:40:40 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:40:43 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:43:48 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:43:49 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:43:51 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:43:54 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:48:55 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:48:56 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:48:58 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:49:01 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:56:18 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:56:19 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:56:21 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:56:24 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:59:18 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:59:19 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:59:22 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 12:59:25 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-13 13:23:57 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 13:23:58 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 13:24:00 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 13:24:03 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 13:24:03 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 13:24:04 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 13:24:07 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 13:24:10 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-13 13:32:30 [[31merror[39m]: [31mError creating vendor: Unknown column 'store_slug' in 'field list'[39m
+2025-07-13 13:32:31 [[31merror[39m]: [31mError creating vendor: Unknown column 'store_slug' in 'field list'[39m
+2025-07-13 13:32:33 [[31merror[39m]: [31mError creating vendor: Unknown column 'store_slug' in 'field list'[39m
+2025-07-13 13:32:36 [[31merror[39m]: [31mError creating vendor: Unknown column 'store_slug' in 'field list'[39m
+2025-07-13 13:35:59 [[31merror[39m]: [31mError creating vendor: Incorrect arguments to mysqld_stmt_execute[39m
+2025-07-13 13:36:00 [[31merror[39m]: [31mError creating vendor: Incorrect arguments to mysqld_stmt_execute[39m
+2025-07-13 13:36:02 [[31merror[39m]: [31mError creating vendor: Incorrect arguments to mysqld_stmt_execute[39m
+2025-07-13 13:36:05 [[31merror[39m]: [31mError creating vendor: Incorrect arguments to mysqld_stmt_execute[39m
+2025-07-13 13:59:49 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 13:59:50 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 13:59:52 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 13:59:55 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 14:01:18 [[31merror[39m]: [31mError creating vendor: Duplicate entry 'tajr-akhtbar' for key 'store_slug'[39m
+2025-07-13 14:01:19 [[31merror[39m]: [31mError creating vendor: Duplicate entry 'tajr-akhtbar' for key 'store_slug'[39m
+2025-07-13 14:01:21 [[31merror[39m]: [31mError creating vendor: Duplicate entry 'tajr-akhtbar' for key 'store_slug'[39m
+2025-07-13 14:01:25 [[31merror[39m]: [31mError creating vendor: Duplicate entry 'tajr-akhtbar' for key 'store_slug'[39m
+2025-07-13 14:04:06 [[31merror[39m]: [31mError creating vendor: Duplicate entry 'tajr-akhtbar' for key 'store_slug'[39m
+2025-07-13 14:04:08 [[31merror[39m]: [31mError creating vendor: Duplicate entry 'tajr-akhtbar' for key 'store_slug'[39m
+2025-07-13 14:04:10 [[31merror[39m]: [31mError creating vendor: Duplicate entry 'tajr-akhtbar' for key 'store_slug'[39m
+2025-07-13 14:04:13 [[31merror[39m]: [31mError creating vendor: Duplicate entry 'tajr-akhtbar' for key 'store_slug'[39m
+2025-07-13 18:59:01 [[31merror[39m]: [31mError creating vendor: Cannot add or update a child row: a foreign key constraint fails (`supermall`.`vendors`, CONSTRAINT `vendors_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE)[39m
+2025-07-13 19:02:22 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:02:23 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:02:25 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:02:28 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:25:33 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:25:34 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:25:36 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:25:39 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:31:36 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:31:37 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:31:39 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:31:42 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:46:12 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:46:13 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:46:15 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:46:18 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:49:41 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:49:42 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:49:44 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:49:47 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:50:38 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:50:39 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:50:41 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:50:44 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:52:56 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:52:57 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:52:59 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:53:02 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:56:16 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:56:17 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:56:19 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 19:56:22 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:02:36 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:02:37 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:02:39 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:02:42 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:09:54 [[31merror[39m]: [31mError creating vendor: Cannot add or update a child row: a foreign key constraint fails (`supermall`.`vendors`, CONSTRAINT `vendors_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE)[39m
+2025-07-13 20:11:32 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:13:17 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:14:30 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:14:31 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:14:33 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:14:36 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:33:09 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:33:10 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:33:12 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:33:15 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-13 20:36:30 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:36:31 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:36:33 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:36:36 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:40:20 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:40:21 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:40:23 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:40:26 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:42:26 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:42:27 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:42:29 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:42:32 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:45:44 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:45:45 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:45:47 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:45:50 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:47:25 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:47:26 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:47:28 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:47:31 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:50:15 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:50:16 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:50:18 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 20:50:21 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:09:41 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:09:42 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:09:44 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:09:47 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:28:48 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:28:49 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:28:51 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:28:54 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:45:34 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:45:35 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:45:37 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:45:40 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:55:19 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:55:20 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:55:22 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 21:55:25 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:12:14 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:12:15 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:12:17 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:12:20 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:24:05 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:24:06 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:24:08 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:24:12 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:28:21 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:28:22 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:28:24 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:28:27 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:32:36 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:32:37 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:32:39 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:32:42 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:37:38 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:37:39 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:37:41 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-13 22:37:44 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 00:41:04 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 00:41:05 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 00:41:07 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 00:41:10 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 00:47:08 [[31merror[39m]: [31mError creating vendor: Cannot add or update a child row: a foreign key constraint fails (`supermall`.`vendors`, CONSTRAINT `vendors_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE)[39m
+2025-07-14 00:47:09 [[31merror[39m]: [31mError creating vendor: Cannot add or update a child row: a foreign key constraint fails (`supermall`.`vendors`, CONSTRAINT `vendors_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE)[39m
+2025-07-14 00:47:11 [[31merror[39m]: [31mError creating vendor: Cannot add or update a child row: a foreign key constraint fails (`supermall`.`vendors`, CONSTRAINT `vendors_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE)[39m
+2025-07-14 00:47:14 [[31merror[39m]: [31mError creating vendor: Cannot add or update a child row: a foreign key constraint fails (`supermall`.`vendors`, CONSTRAINT `vendors_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE)[39m
+2025-07-14 02:18:52 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:18:53 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:18:55 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:18:58 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:22:56 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:22:57 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:22:59 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:23:02 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:25:41 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:25:42 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:25:44 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:25:47 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:33:04 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:33:06 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:33:08 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 02:33:11 [[31merror[39m]: [31mUser already has a vendor account:[39m
+2025-07-14 06:06:47 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-14 06:07:46 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-14 06:09:21 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-14 06:13:08 [[31merror[39m]: [31mError creating vendor: Unknown column 'country' in 'field list'[39m
+2025-07-14 06:19:55 [[31merror[39m]: [31mError creating vendor: Unknown column 'national_id' in 'field list'[39m
+2025-07-14 06:19:55 [[31merror[39m]: [31mError creating vendor: Unknown column 'national_id' in 'field list'[39m
+2025-07-15 01:57:58 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-15 01:57:59 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-15 01:58:01 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-15 01:58:04 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-15 02:11:33 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-15 02:11:34 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-15 02:11:36 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-15 02:11:39 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-15 05:32:52 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-15 05:35:45 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-15 05:58:54 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-15 06:09:53 [[31merror[39m]: [31mMissing required fields[39m
+2025-07-15 06:11:10 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-15 06:13:01 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-15 06:26:47 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-15 06:29:46 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-15 06:39:23 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-15 06:43:12 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-15 06:45:45 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-15 06:48:03 [[31merror[39m]: [31mEmail already exists:[39m
+2025-07-20 04:38:15 [[31merror[39m]: [31mError fetching store settings: Unknown column 'theme' in 'field list'[39m
+2025-07-20 04:39:21 [[31merror[39m]: [31mError fetching store settings: Unknown column 'theme' in 'field list'[39m
+2025-07-20 05:03:28 [[31merror[39m]: [31mError fetching store settings: Unknown column 'social_media' in 'field list'[39m

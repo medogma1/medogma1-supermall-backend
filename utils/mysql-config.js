@@ -1,14 +1,14 @@
 // utils/mysql-config.js
 const mysql = require('mysql2/promise');
-require('dotenv').config();
+const config = require('./config');
 
 // إعدادات الاتصال بقاعدة البيانات MySQL الموحدة
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'xx100100',
-  database: process.env.DB_NAME || 'supermall',
+  host: config.database.host,
+  port: config.database.port,
+  user: config.database.user,
+  password: config.database.password,
+  database: config.database.name,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -18,14 +18,16 @@ const dbConfig = {
 const pool = mysql.createPool(dbConfig);
 
 // اختبار الاتصال
-async function testConnection() {
+async function testConnection(serviceName = '') {
   try {
     const connection = await pool.getConnection();
-    console.log('✅ تم الاتصال بقاعدة بيانات MySQL بنجاح');
+    const servicePrefix = serviceName ? `[${serviceName}] ` : '';
+    console.log(`✅ ${servicePrefix}تم الاتصال بقاعدة بيانات MySQL بنجاح`);
     connection.release();
     return true;
   } catch (error) {
-    console.error('❌ فشل الاتصال بقاعدة بيانات MySQL:', error.message);
+    const servicePrefix = serviceName ? `[${serviceName}] ` : '';
+    console.error(`❌ ${servicePrefix}فشل الاتصال بقاعدة بيانات MySQL:`, error.message);
     return false;
   }
 }

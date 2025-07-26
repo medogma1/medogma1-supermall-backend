@@ -29,7 +29,7 @@ module.exports = {
       return [];
     },
     findById: async (id) => {
-      const [messages] = await chatModel.pool.query('SELECT * FROM chat_messages WHERE id = ?', [id]);
+      const [messages] = await chatModel.pool.execute('SELECT * FROM chat_messages WHERE id = ?', [id]);
       return messages[0] || null;
     },
     updateOne: async (query, update) => {
@@ -51,7 +51,7 @@ module.exports = {
       return [];
     },
     findById: async (id) => {
-      const [conversations] = await chatModel.pool.query('SELECT * FROM chat_conversations WHERE id = ?', [id]);
+      const [conversations] = await chatModel.pool.execute('SELECT * FROM chat_conversations WHERE id = ?', [id]);
       return conversations[0] || null;
     },
     updateOne: async (query, update) => {

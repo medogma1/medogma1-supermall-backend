@@ -8,6 +8,8 @@ CREATE TABLE IF NOT EXISTS `vendors` (
   `phone` VARCHAR(50),
   `description` TEXT,
   `business_type` VARCHAR(50) DEFAULT 'individual',
+  `country` VARCHAR(100),
+  `governorate` VARCHAR(100),
   `tax_id` VARCHAR(50),
   `registration_number` VARCHAR(50),
   `is_active` BOOLEAN DEFAULT TRUE,

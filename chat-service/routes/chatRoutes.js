@@ -7,7 +7,8 @@ const authMiddleware = require('../middleware/authMiddleware');
 router.use(authMiddleware);
 
 // مسارات المحادثات
-router.post('/conversations', chatController.createChatRoom);
+router.post('/conversations', chatController.createConversation);
+router.post('/chatrooms', chatController.createChatRoom);
 router.get('/conversations/user', chatController.getUserChatRooms);
 router.post('/conversations/close/:conversationId', chatController.closeChatRoom);
 

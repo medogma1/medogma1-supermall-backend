@@ -4,7 +4,7 @@
 const USER_ROLES = {
   ADMIN: 'admin',
   VENDOR: 'vendor',
-  CUSTOMER: 'user'
+  USER: 'user'
 };
 
 // ثوابت التحقق
@@ -13,7 +13,7 @@ const VALIDATION = {
   USERNAME_MAX_LENGTH: 50,
   PASSWORD_MIN_LENGTH: 8,
   EMAIL_REGEX: /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/,
-  PHONE_REGEX: /^01[0125][0-9]{8}$/,
+  PHONE_REGEX: /^(\+20|0020|20)?01[0125][0-9]{8}$/,
   NATIONAL_ID_REGEX: /^[2-3][0-9]{13}$/,
   PASSWORD_REGEX: /^(?=.*\d)(?=.*[!@#$&*])[A-Za-z\d!@#$&*]{8,}$/,
   // تعبير منتظم أقل تشددًا لكلمة مرور المسؤول

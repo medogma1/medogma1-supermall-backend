@@ -1,10 +1,15 @@
 // models/Vendor.js
-const { pool } = require('../config/database');
+const pool = require('../config/database');
 const slugify = require('slugify');
+// const { logger } = require('../../utils/logger');
 
 // Constants
 const EMAIL_REGEX = /^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$/;
-const PHONE_REGEX = /^01[0125][0-9]{8}$/;
+// استيراد دوال معالجة رقم الهاتف
+const { cleanPhoneNumber, validatePhoneNumber } = require('../../utils/phoneUtils');
+
+// تعبير منتظم محسن للتحقق من صحة رقم الهاتف (مصري ودولي)
+const PHONE_REGEX = /^(\+[1-9]\d{1,14}|01[0125][0-9]{8})$/;
 const NATIONAL_ID_REGEX = /^[2-3][0-9]{13}$/;
 const MAX_DESCRIPTION_LENGTH = 1000;
 const IMAGE_URL_REGEX = /\.(jpg|jpeg|png|gif|svg)$/i;
@@ -51,7 +56,7 @@ function snakeToCamel(obj) {
 // دالة مساعدة لتحويل camelCase إلى snake_case
 function camelToSnake(obj) {
   if (obj === null || obj === undefined || typeof obj !== 'object') {
-    return obj;
+    return obj === undefined ? null : obj;
   }
 
   if (Array.isArray(obj)) {
@@ -60,14 +65,23 @@ function camelToSnake(obj) {
 
   return Object.keys(obj).reduce((acc, key) => {
     const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-    const value = obj[key];
+    let value = obj[key];
     
+    // تحويل undefined إلى null
+    if (value === undefined) {
+      value = null;
+    }
+    
+    // معالجة التواريخ
+    if (value instanceof Date) {
+      acc[snakeKey] = value.toISOString().slice(0, 19).replace('T', ' ');
+    }
     // تحويل الكائنات إلى JSON للتخزين
-    if (snakeKey === 'social_media' || snakeKey === 'address' || snakeKey === 'location' || 
+    else if (snakeKey === 'social_media' || snakeKey === 'address' || snakeKey === 'location' || 
         snakeKey === 'working_hours' || snakeKey === 'verification_documents' || snakeKey === 'bank_account_info') {
       acc[snakeKey] = value !== null && typeof value === 'object' ? JSON.stringify(value) : value;
     } else {
-      acc[snakeKey] = value !== null && typeof value === 'object' ? camelToSnake(value) : value;
+      acc[snakeKey] = value !== null && typeof value === 'object' && !(value instanceof Date) ? camelToSnake(value) : value;
     }
     
     return acc;
@@ -77,6 +91,23 @@ function camelToSnake(obj) {
 class Vendor {
   // تخزين آخر خطأ تحقق
   static _lastValidationError = null;
+  
+  // قائمة الحقول المسموحة في جدول vendors
+  static getAllowedFields() {
+    return [
+      'user_id', 'name', 'email', 'phone', 'store_name', 'store_slug',
+      'store_description', 'store_logo_url', 'contact_email', 'contact_phone',
+      'store_address', 'workshop_address', 'store_settings_completed',
+      'logo', 'banner', 'description', 'short_description', 'website',
+      'social_media', 'business_type', 'business_category', 'tax_number',
+      'commercial_register', 'country', 'governorate', 'address', 'location',
+      'working_hours', 'verification_status', 'verification_documents',
+      'verification_date', 'is_featured', 'is_active', 'rating', 'review_count',
+      'commission_rate', 'balance', 'total_sales', 'total_orders',
+      'created_at', 'updated_at', 'national_id'
+    ];
+  }
+  
   // إنشاء بائع جديد
   static async create(vendorData) {
     try {
@@ -106,9 +137,10 @@ class Vendor {
       if (!this.validateVendorData(vendorData)) {
         console.error('Validation failed');
         const validationErrors = this.getValidationErrors(vendorData);
-        const error = new Error('Validation failed');
+        const errorMessage = this._lastValidationError || 'Validation failed';
+        const error = new Error(errorMessage);
         error.statusCode = 400;
-        error.details = Array.isArray(validationErrors) ? validationErrors : [validationErrors || 'Unknown validation error'];
+        error.details = Array.isArray(validationErrors) ? validationErrors : [validationErrors || errorMessage];
         throw error;
       }
       console.log('Vendor data validation passed');
@@ -122,16 +154,40 @@ class Vendor {
         throw error;
       }
       
-      // إنشاء slug من اسم المتجر
-      const storeSlug = slugify(vendorData.storeName || vendorData.name, { lower: true, strict: true });
-      console.log('Generated store slug:', storeSlug);
+      // إنشاء slug فريد من اسم المتجر مع التحقق من الفرادة
+      const storeName = vendorData.storeName || vendorData.store_name || vendorData.name;
+      const baseSlug = slugify(storeName, { lower: true, strict: true });
+      const storeSlug = await this.generateUniqueSlug(baseSlug);
+      console.log('Generated unique store slug:', storeSlug);
       
+      // تحويل أي قيم undefined أو فارغة إلى null في vendorData أولاً
+      Object.keys(vendorData).forEach(key => {
+        if (vendorData[key] === undefined || vendorData[key] === '') {
+          vendorData[key] = null;
+        }
+      });
+
       // تحويل البيانات إلى snake_case وإعداد الحقول JSON
       const data = camelToSnake({
         ...vendorData,
         storeSlug,
+        // إضافة الحقول المطلوبة للتوافق مع الفرونت إند
+        storeName: vendorData.storeName || vendorData.store_name || vendorData.name,
+        storeDescription: vendorData.storeDescription || vendorData.description || '',
+        storeLogoUrl: vendorData.storeLogoUrl || vendorData.logo || '',
+        contactEmail: vendorData.contactEmail || vendorData.contact_email || vendorData.email,
+        contactPhone: vendorData.contactPhone || vendorData.contact_phone || vendorData.phone,
+        storeAddress: vendorData.storeAddress || vendorData.address || '',
+        storeSettingsCompleted: vendorData.storeSettingsCompleted || false,
         createdAt: new Date(),
         updatedAt: new Date()
+      });
+
+      // تحويل أي قيم undefined أو فارغة إلى null في data أيضاً
+      Object.keys(data).forEach(key => {
+        if (data[key] === undefined || data[key] === '') {
+          data[key] = null;
+        }
       });
       console.log('Transformed data to snake_case:', JSON.stringify(data, null, 2));
       
@@ -160,14 +216,30 @@ class Vendor {
         console.log('Using contact_email as email:', data['email']);
       }
       
+      // تصفية البيانات للحقول المسموحة فقط
+      const allowedFields = this.getAllowedFields();
+      const filteredData = {};
+      
+      Object.keys(data).forEach(key => {
+        if (allowedFields.includes(key)) {
+          filteredData[key] = data[key];
+        } else {
+          console.warn(`⚠️ [Vendor.create] Ignoring unauthorized field: ${key}`);
+        }
+      });
+      
+      console.log('🔍 [Vendor.create] Filtered data:', Object.keys(filteredData));
+      
       // إعداد استعلام الإدراج
-      const fields = Object.keys(data).join(', ');
-      const placeholders = Object.keys(data).map(() => '?').join(', ');
-      const values = Object.values(data);
+      const fields = Object.keys(filteredData).join(', ');
+      const placeholders = Object.keys(filteredData).map(() => '?').join(', ');
+      // تحويل قيم undefined إلى null
+      const values = Object.values(filteredData).map(value => value === undefined ? null : value);
       
       const query = `INSERT INTO vendors (${fields}) VALUES (${placeholders})`;
       console.log('SQL Query:', query);
       console.log('SQL Values:', JSON.stringify(values, null, 2));
+      console.log('Values after undefined cleanup:', values.map((v, i) => `${Object.keys(data)[i]}: ${v === null ? 'NULL' : typeof v} = ${v}`));
       
       let result;
       try {
@@ -427,7 +499,7 @@ class Vendor {
         }
       });
       
-      const result = {
+      const finalResult = {
         vendors,
         pagination: {
           total,
@@ -438,7 +510,7 @@ class Vendor {
       };
       
       console.log('Returning result with', vendors.length, 'vendors');
-      return result;
+      return finalResult;
     } catch (error) {
       console.error('Error in findAll method:', error);
       throw error;
@@ -462,7 +534,8 @@ class Vendor {
       
       // إعداد استعلام التحديث
       const setClause = Object.keys(data).map(key => `${key} = ?`).join(', ');
-      const values = [...Object.values(data), id];
+      // تحويل قيم undefined إلى null
+      const values = [...Object.values(data).map(value => value === undefined ? null : value), id];
       
       const query = `UPDATE vendors SET ${setClause} WHERE id = ?`;
       
@@ -540,12 +613,15 @@ class Vendor {
         throw new Error('Name is required');
       }
       
-      if (!data.email) {
-        console.error('Error: email is required');
-        throw new Error('Email is required');
+      // التحقق من وجود إما email أو contact_email
+      if (!data.email && !data.contact_email && !data.contactEmail) {
+        console.error('Error: email or contact_email is required');
+        throw new Error('Email or contact_email is required');
       }
       
-      if (!EMAIL_REGEX.test(data.email)) {
+      // التحقق من تنسيق البريد الإلكتروني
+      const emailToValidate = data.email || data.contact_email || data.contactEmail;
+      if (emailToValidate && !EMAIL_REGEX.test(emailToValidate)) {
         console.error('Error: invalid email format');
         throw new Error('Invalid email format');
       }
@@ -555,9 +631,14 @@ class Vendor {
         throw new Error('Phone is required');
       }
       
-      if (!PHONE_REGEX.test(data.phone)) {
+      // تنظيف وتحقق من رقم الهاتف
+      const cleanedPhone = cleanPhoneNumber(data.phone);
+      if (!validatePhoneNumber(cleanedPhone)) {
         console.error('Error: invalid phone format');
         throw new Error('Invalid phone format');
+      } else {
+        // تحديث الرقم بالنسخة المنظفة
+        data.phone = cleanedPhone;
       }
       
       // التحقق من وجود business_type
@@ -579,9 +660,14 @@ class Vendor {
         throw new Error(`Store description cannot exceed ${MAX_DESCRIPTION_LENGTH} characters`);
       }
       
-      if (data.storeAddress && data.storeAddress.length > 200) {
-        throw new Error('Store address cannot exceed 200 characters');
+      if (data.storeAddress && data.storeAddress.length > 500) {
+        throw new Error('Store address cannot exceed 500 characters');
       }
+      
+      // التحقق من الحقول المطلوبة للفرونت إند (اختياري)
+      // if (!data.storeName && !data.store_name) {
+      //   throw new Error('Store name is required');
+      // }
       
       // التحقق من تنسيق الصور
       if (data.storeLogoUrl && data.storeLogoUrl !== '' && !IMAGE_URL_REGEX.test(data.storeLogoUrl)) {
@@ -597,9 +683,15 @@ class Vendor {
         throw new Error('Invalid contact email format');
       }
       
-      // التحقق من رقم الهاتف للاتصال
-      if (data.contactPhone && data.contactPhone !== '' && !PHONE_REGEX.test(data.contactPhone)) {
-        throw new Error('Invalid contact phone format');
+      // تنظيف وتحقق من رقم هاتف التواصل
+      if (data.contactPhone && data.contactPhone !== '') {
+        const cleanedContactPhone = cleanPhoneNumber(data.contactPhone);
+        if (!validatePhoneNumber(cleanedContactPhone)) {
+          throw new Error('Invalid contact phone format');
+        } else {
+          // تحديث الرقم بالنسخة المنظفة
+          data.contactPhone = cleanedContactPhone;
+        }
       }
       
       // التحقق من الرقم القومي
@@ -681,6 +773,211 @@ class Vendor {
       phone: vendor.contactPhone || vendor.phone,
       address: vendor.storeAddress
     };
+  }
+  
+  // إنشاء slug فريد بالتحقق من قاعدة البيانات
+  static async generateUniqueSlug(baseSlug) {
+    try {
+      let slug = baseSlug;
+      let counter = 1;
+      
+      // التحقق من وجود slug في قاعدة البيانات
+      while (await this.slugExists(slug)) {
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+      }
+      
+      return slug;
+    } catch (error) {
+      console.error('Error generating unique slug:', error);
+      // في حالة الخطأ، نعيد slug مع timestamp لضمان الفرادة
+      return `${baseSlug}-${Date.now()}`;
+    }
+  }
+  
+  // التحقق من وجود slug في قاعدة البيانات
+  static async slugExists(slug) {
+    try {
+      const [rows] = await pool.execute('SELECT id FROM vendors WHERE store_slug = ?', [slug]);
+      return rows.length > 0;
+    } catch (error) {
+      console.error('Error checking slug existence:', error);
+      return false;
+    }
+  }
+
+  // جلب البائعين العامين (بدون مصادقة)
+  static async getPublicVendors() {
+    try {
+      const [rows] = await pool.execute(`
+        SELECT 
+          id, 
+          store_name, 
+          store_description, 
+          store_logo_url,
+          contact_phone as phone,
+          contact_email as email,
+          store_address,
+          country,
+          governorate,
+          is_active,
+          rating,
+          review_count,
+          created_at
+        FROM vendors 
+        WHERE is_active = true AND store_settings_completed = true
+        ORDER BY rating DESC, created_at DESC
+      `);
+      return rows.map(row => snakeToCamel(row));
+    } catch (error) {
+      console.error('Error fetching public vendors:', error);
+      throw error;
+    }
+  }
+
+  // جلب جميع البائعين (للمدير)
+  static async getAll() {
+    try {
+      const [rows] = await pool.execute(`
+        SELECT * FROM vendors 
+        ORDER BY created_at DESC
+      `);
+      return rows.map(row => snakeToCamel(row));
+    } catch (error) {
+      console.error('Error fetching all vendors:', error);
+      throw error;
+    }
+  }
+
+  // تحديث حالة البائع
+  static async updateStatus(id, status) {
+    try {
+      // تحويل active/inactive إلى 1/0 للحقل is_active
+      const isActive = status === 'active' ? 1 : 0;
+      
+      const query = `
+        UPDATE vendors 
+        SET is_active = ?, updated_at = NOW() 
+        WHERE id = ?
+      `;
+      
+      const [result] = await pool.execute(query, [isActive, id]);
+      return result;
+    } catch (error) {
+      console.error('خطأ في تحديث حالة البائع:', error);
+      throw error;
+    }
+  }
+
+  // جلب إحصائيات البائعين
+  static async getAnalytics() {
+    try {
+      const query = `
+        SELECT 
+          COUNT(*) as total_vendors,
+          COUNT(CASE WHEN status = 'active' THEN 1 END) as active_vendors,
+          COUNT(CASE WHEN status = 'inactive' THEN 1 END) as inactive_vendors,
+          COUNT(CASE WHEN status = 'suspended' THEN 1 END) as suspended_vendors,
+          COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 END) as new_vendors_last_30_days
+        FROM vendors
+      `;
+      
+      const [rows] = await pool.execute(query);
+      return rows[0];
+    } catch (error) {
+      console.error('خطأ في جلب إحصائيات البائعين:', error);
+      throw error;
+    }
+  }
+
+  // تحديث شعار البائع
+  static async updateLogo(id, logoUrl) {
+    try {
+      const query = `
+        UPDATE vendors 
+        SET store_logo_url = ?, updated_at = NOW() 
+        WHERE id = ?
+      `;
+      
+      const [result] = await pool.execute(query, [logoUrl, id]);
+      return result;
+    } catch (error) {
+      console.error('خطأ في تحديث شعار البائع:', error);
+      throw error;
+    }
+  }
+
+  // جلب طلبات البائع
+  static async getOrders(vendorId) {
+    try {
+      const query = `
+        SELECT o.*, u.name as customer_name 
+        FROM orders o 
+        JOIN users u ON o.user_id = u.id 
+        WHERE o.vendor_id = ? 
+        ORDER BY o.created_at DESC
+      `;
+      
+      const [rows] = await pool.execute(query, [vendorId]);
+      return rows;
+    } catch (error) {
+      console.error('خطأ في جلب طلبات البائع:', error);
+      throw error;
+    }
+  }
+
+  // جلب منتجات البائع
+  static async getProducts(vendorId) {
+    try {
+      const query = `
+        SELECT * FROM products 
+        WHERE vendor_id = ? 
+        ORDER BY created_at DESC
+      `;
+      
+      const [rows] = await pool.execute(query, [vendorId]);
+      return rows;
+    } catch (error) {
+      console.error('خطأ في جلب منتجات البائع:', error);
+      throw error;
+    }
+  }
+
+  // جلب تقييمات البائع
+  static async getReviews(vendorId) {
+    try {
+      const query = `
+        SELECT r.*, u.name as customer_name 
+        FROM vendor_reviews r 
+        JOIN users u ON r.user_id = u.id 
+        WHERE r.vendor_id = ? 
+        ORDER BY r.created_at DESC
+      `;
+      
+      const [rows] = await db.execute(query, [vendorId]);
+      return rows;
+    } catch (error) {
+      console.error('خطأ في جلب تقييمات البائع:', error);
+      throw error;
+    }
+  }
+
+  // جلب لوحة تحكم البائع
+  static async getDashboard(vendorId) {
+    try {
+      const [ordersCount] = await pool.execute('SELECT COUNT(*) as count FROM orders WHERE vendor_id = ?', [vendorId]);
+      const [productsCount] = await pool.execute('SELECT COUNT(*) as count FROM products WHERE vendor_id = ?', [vendorId]);
+      const [revenue] = await pool.execute('SELECT SUM(total_amount) as total FROM orders WHERE vendor_id = ? AND status = "completed"', [vendorId]);
+      
+      return {
+        orders_count: ordersCount[0].count,
+        products_count: productsCount[0].count,
+        total_revenue: revenue[0].total || 0
+      };
+    } catch (error) {
+      console.error('خطأ في جلب لوحة تحكم البائع:', error);
+      throw error;
+    }
   }
 }
 

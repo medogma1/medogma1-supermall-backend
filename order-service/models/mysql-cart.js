@@ -1,21 +1,6 @@
 // order-service/models/mysql-cart.js
-const mysql = require('mysql2/promise');
+const { pool } = require('../config/database');
 require('dotenv').config();
-
-// إعدادات الاتصال بقاعدة البيانات MySQL الموحدة
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'xx100100',
-  database: process.env.DB_NAME || 'supermall',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
-
-// إنشاء تجمع اتصالات
-const pool = mysql.createPool(dbConfig);
 
 /**
  * إنشاء عربة تسوق جديدة للمستخدم
@@ -25,7 +10,7 @@ const pool = mysql.createPool(dbConfig);
 async function createCart(userId) {
   try {
     // التحقق من وجود عربة للمستخدم
-    const [existingCarts] = await pool.query(
+    const [existingCarts] = await pool.execute(
       'SELECT * FROM carts WHERE user_id = ? AND status = "active"',
       [userId]
     );
@@ -35,12 +20,12 @@ async function createCart(userId) {
     }
     
     // إنشاء عربة جديدة
-    const [result] = await pool.query(
+    const [result] = await pool.execute(
       'INSERT INTO carts (user_id, subtotal, total_items, status) VALUES (?, 0, 0, "active")',
       [userId]
     );
     
-    const [newCart] = await pool.query(
+    const [newCart] = await pool.execute(
       'SELECT * FROM carts WHERE id = ?',
       [result.insertId]
     );
@@ -60,7 +45,7 @@ async function createCart(userId) {
 async function getUserCart(userId) {
   try {
     // الحصول على العربة
-    const [carts] = await pool.query(
+    const [carts] = await pool.execute(
       'SELECT * FROM carts WHERE user_id = ? AND status = "active"',
       [userId]
     );
@@ -73,7 +58,7 @@ async function getUserCart(userId) {
     const cart = carts[0];
     
     // الحصول على عناصر العربة
-    const [items] = await pool.query(
+    const [items] = await pool.execute(
       `SELECT ci.*, p.name, p.image, v.name as vendor_name 
        FROM cart_items ci 
        LEFT JOIN products p ON ci.product_id = p.id 
@@ -122,7 +107,7 @@ async function addItemToCart(userId, itemData) {
     
     // التحقق مما إذا كان العنصر موجودًا بالفعل
     const variantJSON = variant ? JSON.stringify(variant) : null;
-    const [existingItems] = await pool.query(
+    const [existingItems] = await pool.execute(
       'SELECT * FROM cart_items WHERE cart_id = ? AND product_id = ? AND variant = ?',
       [cart.id, product_id, variantJSON]
     );
@@ -133,13 +118,13 @@ async function addItemToCart(userId, itemData) {
       const newQuantity = existingItem.quantity + quantity;
       const newSubtotal = price * newQuantity;
       
-      await pool.query(
+      await pool.execute(
         'UPDATE cart_items SET quantity = ?, subtotal = ? WHERE id = ?',
         [newQuantity, newSubtotal, existingItem.id]
       );
     } else {
       // إضافة عنصر جديد
-      await pool.query(
+      await pool.execute(
         'INSERT INTO cart_items (cart_id, product_id, price, quantity, variant, subtotal) VALUES (?, ?, ?, ?, ?, ?)',
         [cart.id, product_id, price, quantity, variantJSON, subtotal]
       );
@@ -174,7 +159,7 @@ async function updateCartItemQuantity(userId, itemId, quantity) {
     const cart = cartResult.cart;
     
     // التحقق من وجود العنصر
-    const [items] = await pool.query(
+    const [items] = await pool.execute(
       'SELECT * FROM cart_items WHERE id = ? AND cart_id = ?',
       [itemId, cart.id]
     );
@@ -192,7 +177,7 @@ async function updateCartItemQuantity(userId, itemId, quantity) {
     
     // تحديث الكمية والمجموع الفرعي
     const subtotal = item.price * quantity;
-    await pool.query(
+    await pool.execute(
       'UPDATE cart_items SET quantity = ?, subtotal = ? WHERE id = ?',
       [quantity, subtotal, itemId]
     );
@@ -225,7 +210,7 @@ async function removeCartItem(userId, itemId) {
     const cart = cartResult.cart;
     
     // حذف العنصر
-    await pool.query(
+    await pool.execute(
       'DELETE FROM cart_items WHERE id = ? AND cart_id = ?',
       [itemId, cart.id]
     );
@@ -257,13 +242,13 @@ async function clearCart(userId) {
     const cart = cartResult.cart;
     
     // حذف جميع العناصر
-    await pool.query(
+    await pool.execute(
       'DELETE FROM cart_items WHERE cart_id = ?',
       [cart.id]
     );
     
     // تحديث إجماليات العربة
-    await pool.query(
+    await pool.execute(
       'UPDATE carts SET subtotal = 0, total_items = 0, coupon_code = NULL, discount_amount = 0, updated_at = NOW() WHERE id = ?',
       [cart.id]
     );
@@ -294,7 +279,7 @@ async function applyCoupon(userId, couponCode, discountAmount) {
     const cart = cartResult.cart;
     
     // تطبيق الكوبون
-    await pool.query(
+    await pool.execute(
       'UPDATE carts SET coupon_code = ?, discount_amount = ?, updated_at = NOW() WHERE id = ?',
       [couponCode, discountAmount, cart.id]
     );
@@ -323,7 +308,7 @@ async function removeCoupon(userId) {
     const cart = cartResult.cart;
     
     // إزالة الكوبون
-    await pool.query(
+    await pool.execute(
       'UPDATE carts SET coupon_code = NULL, discount_amount = 0, updated_at = NOW() WHERE id = ?',
       [cart.id]
     );
@@ -344,7 +329,7 @@ async function removeCoupon(userId) {
 async function updateCartTotals(cartId) {
   try {
     // حساب المجموع الفرعي وعدد العناصر
-    const [subtotalResult] = await pool.query(
+    const [subtotalResult] = await pool.execute(
       'SELECT SUM(subtotal) as subtotal, SUM(quantity) as total_items FROM cart_items WHERE cart_id = ?',
       [cartId]
     );
@@ -353,7 +338,7 @@ async function updateCartTotals(cartId) {
     const totalItems = subtotalResult[0].total_items || 0;
     
     // تحديث العربة
-    await pool.query(
+    await pool.execute(
       'UPDATE carts SET subtotal = ?, total_items = ?, updated_at = NOW() WHERE id = ?',
       [subtotal, totalItems, cartId]
     );
@@ -379,7 +364,7 @@ async function validateCartItems(userId) {
     const cart = cartResult.cart;
     
     // الحصول على عناصر العربة
-    const [items] = await pool.query(
+    const [items] = await pool.execute(
       `SELECT ci.*, p.name, p.stock, p.status 
        FROM cart_items ci 
        LEFT JOIN products p ON ci.product_id = p.id 

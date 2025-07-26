@@ -20,6 +20,16 @@ app.get('/', (req, res) => {
   res.json({ status: 'success', message: 'خدمة الإشعارات تعمل بشكل صحيح' });
 });
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    service: 'notification-service',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // مسارات الإشعارات
 app.use('/notifications', notificationRoutes);
 

@@ -1,33 +1,12 @@
 // auth-service/config/database.js
 require('dotenv').config();
-const mysql = require('mysql2/promise');
+const { pool } = require('../../utils/mysql-config');
 
-// إعدادات الاتصال بقاعدة البيانات MySQL
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '3306'),
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'xx100100',
-  database: process.env.DB_NAME || 'supermall',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
+// استخدام دالة testConnection الموحدة
+const { testConnection: baseTestConnection } = require('../../utils/mysql-config');
 
-// إنشاء تجمع اتصالات
-const pool = mysql.createPool(dbConfig);
-
-// اختبار الاتصال
 async function testConnection() {
-  try {
-    const connection = await pool.getConnection();
-    console.log('✅ [Auth] تم الاتصال بقاعدة بيانات MySQL بنجاح');
-    connection.release();
-    return true;
-  } catch (error) {
-    console.error('❌ [Auth] فشل الاتصال بقاعدة بيانات MySQL:', error.message);
-    return false;
-  }
+  return baseTestConnection('Auth');
 }
 
 module.exports = {

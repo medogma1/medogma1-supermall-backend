@@ -1,5 +1,4 @@
 const Product = require('../models/Product');
-const mongoose = require('mongoose');
 
 // البحث العام عن المنتجات
 exports.searchProducts = async (req, res) => {
@@ -7,13 +6,7 @@ exports.searchProducts = async (req, res) => {
     const { q } = req.query;
     if (!q) return res.status(400).json({ message: 'يرجى إدخال كلمة البحث' });
 
-    const products = await Product.find(
-      { $text: { $search: q } },
-      { score: { $meta: 'textScore' } }
-    )
-      .sort({ score: { $meta: 'textScore' } })
-      .populate('categoryId', 'name')
-      .populate('vendorId', 'username storeName');
+    const products = await Product.search(q);
 
     res.json(products);
   } catch (error) {
@@ -27,21 +20,12 @@ exports.searchProductsByCategory = async (req, res) => {
     const { categoryId } = req.params;
     const { q } = req.query;
 
-    if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+    if (!categoryId || isNaN(categoryId)) {
       return res.status(400).json({ message: 'معرف الفئة غير صالح' });
     }
 
-    let query = { categoryId: mongoose.Types.ObjectId(categoryId) };
-
-    // إضافة البحث النصي إذا تم توفير استعلام
-    if (q) {
-      query.$text = { $search: q };
-    }
-
-    const products = await Product.find(query)
-      .sort(q ? { score: { $meta: 'textScore' } } : { createdAt: -1 })
-      .populate('categoryId', 'name')
-      .populate('vendorId', 'username storeName');
+    const filters = { category_id: categoryId };
+    const products = await Product.findAll({ filters, searchQuery: q });
 
     res.json(products);
   } catch (error) {
@@ -55,21 +39,12 @@ exports.searchProductsByVendor = async (req, res) => {
     const { vendorId } = req.params;
     const { q } = req.query;
 
-    if (!mongoose.Types.ObjectId.isValid(vendorId)) {
+    if (!vendorId || isNaN(vendorId)) {
       return res.status(400).json({ message: 'معرف البائع غير صالح' });
     }
 
-    let query = { vendorId: mongoose.Types.ObjectId(vendorId) };
-
-    // إضافة البحث النصي إذا تم توفير استعلام
-    if (q) {
-      query.$text = { $search: q };
-    }
-
-    const products = await Product.find(query)
-      .sort(q ? { score: { $meta: 'textScore' } } : { createdAt: -1 })
-      .populate('categoryId', 'name')
-      .populate('vendorId', 'username storeName');
+    const filters = { vendor_id: vendorId };
+    const products = await Product.findAll({ filters, searchQuery: q });
 
     res.json(products);
   } catch (error) {
@@ -90,56 +65,55 @@ exports.filterProducts = async (req, res) => {
       limit = 10
     } = req.query;
 
-    const query = {};
+    const filters = {};
     
     // تصفية حسب الفئة
-    if (category && mongoose.Types.ObjectId.isValid(category)) {
-      query.categoryId = mongoose.Types.ObjectId(category);
+    if (category && !isNaN(category)) {
+      filters.category_id = category;
     }
     
     // تصفية حسب السعر
-    if (minPrice || maxPrice) {
-      query.price = {};
-      if (minPrice) query.price.$gte = Number(minPrice);
-      if (maxPrice) query.price.$lte = Number(maxPrice);
-    }
+    if (minPrice) filters.minPrice = Number(minPrice);
+    if (maxPrice) filters.maxPrice = Number(maxPrice);
     
     // تصفية حسب المخزون
-    if (inStock === 'true') query.stockQuantity = { $gt: 0 };
+    if (inStock === 'true') filters.inStock = true;
 
     // خيارات الترتيب
-    let sortOptions = { createdAt: -1 }; // الافتراضي: الأحدث أولاً
+    let sortBy_field = 'created_at';
+    let sortOrder = 'DESC';
     if (sortBy) {
       switch (sortBy) {
         case 'price_asc':
-          sortOptions = { price: 1 };
+          sortBy_field = 'price';
+          sortOrder = 'ASC';
           break;
         case 'price_desc':
-          sortOptions = { price: -1 };
+          sortBy_field = 'price';
+          sortOrder = 'DESC';
           break;
         case 'rating':
-          sortOptions = { rating: -1 };
+          sortBy_field = 'rating';
+          sortOrder = 'DESC';
           break;
       }
     }
 
-    const skip = (page - 1) * limit;
+    const options = {
+      page: Number(page),
+      limit: Number(limit),
+      sortBy: sortBy_field,
+      sortOrder,
+      filters
+    };
 
-    const [products, total] = await Promise.all([
-      Product.find(query)
-        .sort(sortOptions)
-        .skip(skip)
-        .limit(Number(limit))
-        .populate('categoryId', 'name')
-        .populate('vendorId', 'username storeName'),
-      Product.countDocuments(query)
-    ]);
+    const result = await Product.findAll(options);
 
     res.json({
-      products,
-      currentPage: page,
-      totalPages: Math.ceil(total / limit),
-      totalProducts: total
+      products: result.products || result,
+      currentPage: Number(page),
+      totalPages: result.totalPages || Math.ceil((result.total || result.length) / limit),
+      totalProducts: result.total || result.length
     });
   } catch (error) {
     res.status(500).json({ message: 'حدث خطأ أثناء تصفية المنتجات', error: error.message });

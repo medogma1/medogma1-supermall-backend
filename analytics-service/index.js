@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const mysql = require('mysql2/promise');
+const config = require('../utils/config');
+const { handleError } = require('../utils/auth/errorHandler');
 
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const performanceRoutes = require('./routes/performanceRoutes');
@@ -23,18 +25,33 @@ app.use('/analytics', analyticsRoutes);
 // 🚀 [Performance] المسارات
 app.use('/performance', performanceRoutes);
 
+// استيراد معالج الاستجابة الموحد
+const { successResponse } = require('../utils/common/responseHandler');
+
 // مسار الصحة للتحقق من حالة الخدمة
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', service: 'analytics-service' });
+  successResponse(res, 200, 'الخدمة تعمل بشكل طبيعي', { service: 'analytics-service', status: 'ok' });
+});
+
+// معالجة المسارات غير الموجودة
+app.use((req, res, next) => {
+  const error = new Error(`المسار غير موجود - ${req.originalUrl}`);
+  error.statusCode = 404;
+  next(error);
+});
+
+// وسيط معالجة الأخطاء المشترك
+app.use((err, req, res, next) => {
+  handleError(err, res, 'analytics-service');
 });
 
 // 🛠️ اتصال بقاعدة البيانات MySQL
 const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'xx100100',
-  database: process.env.DB_NAME || 'supermall',
+  host: config.database.host,
+  port: config.database.port,
+  user: config.database.user,
+  password: config.database.password,
+  database: config.database.name,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0
@@ -51,11 +68,13 @@ const initializeDatabase = async () => {
     connection.release();
     
     // بدء الخادم بعد التأكد من الاتصال بقاعدة البيانات
-    app.listen(process.env.PORT, () =>
-      console.log(`🚀 [Analytics] Service running on port ${process.env.PORT}`)
-    );
+    const PORT = config.getServicePort('analytics');
+    app.listen(PORT, () => {
+      console.log(`🚀 [Analytics] Service running on port ${PORT}`);
+      console.log(`Environment: ${config.server.nodeEnv}`);
+    });
   } catch (error) {
-    console.error('❌ MySQL connection failed:', error);
+    console.error('❌ MySQL connection failed:', error.message);
     process.exit(1);
   }
 };

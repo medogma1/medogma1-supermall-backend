@@ -22,6 +22,49 @@ exports.createChatRoom = async (req, res) => {
   }
 };
 
+// دالة منفصلة لإنشاء المحادثات (متوافقة مع الاختبارات)
+exports.createConversation = async (req, res) => {
+  try {
+    const { vendorId, receiverId } = req.body;
+    const userId = req.user.id || req.user.userId;
+
+    // استخدام vendorId أو receiverId
+    const targetVendorId = vendorId || receiverId;
+
+    if (!targetVendorId) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'معرف البائع أو المستقبل مطلوب',
+        error: 'Missing vendorId or receiverId'
+      });
+    }
+
+    const result = await chatModel.createConversation(userId, targetVendorId);
+
+    if (!result.success) {
+      return res.status(500).json({ 
+        success: false,
+        message: result.error,
+        error: result.error
+      });
+    }
+
+    res.status(201).json({
+      success: true,
+      message: 'تم إنشاء المحادثة بنجاح',
+      data: result.conversation,
+      conversationId: result.conversation.id
+    });
+  } catch (error) {
+    console.error('خطأ في إنشاء المحادثة:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'حدث خطأ أثناء إنشاء المحادثة',
+      error: error.message
+    });
+  }
+};
+
 exports.getUserChatRooms = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -56,7 +99,7 @@ exports.sendMessage = async (req, res) => {
     const senderId = req.user.id;
 
     // الحصول على معلومات المحادثة
-    const [conversations] = await chatModel.pool.query(
+    const [conversations] = await chatModel.pool.execute(
       'SELECT * FROM chat_conversations WHERE id = ?',
       [conversationId]
     );

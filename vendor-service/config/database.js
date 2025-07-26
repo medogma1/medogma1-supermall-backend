@@ -1,7 +1,9 @@
 // vendor-service/config/database.js
 const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
 require('dotenv').config();
-const logger = require('../logger');
+const { logger } = require('../../utils/logger');
 
 // إنشاء مجمع اتصالات MySQL
 const pool = mysql.createPool({
@@ -28,6 +30,38 @@ async function testConnection() {
   }
 }
 
+// دالة لتهيئة قاعدة البيانات
+async function initializeDatabase() {
+  try {
+    const sqlFile = path.join(__dirname, 'database.sql');
+    
+    if (fs.existsSync(sqlFile)) {
+      const sql = fs.readFileSync(sqlFile, 'utf8');
+      const statements = sql.split(';').filter(stmt => stmt.trim().length > 0);
+      
+      for (const statement of statements) {
+        if (statement.trim() && !statement.trim().startsWith('--')) {
+          try {
+            await pool.execute(statement);
+          } catch (error) {
+            // تجاهل أخطاء الجداول الموجودة
+            if (!error.message.includes('already exists')) {
+              logger.warn(`Database warning: ${error.message}`);
+            }
+          }
+        }
+      }
+      logger.info('✅ تم إنشاء/تحديث جداول قاعدة البيانات بنجاح');
+    } else {
+      logger.warn('⚠️ ملف database.sql غير موجود');
+    }
+  } catch (error) {
+    logger.error('❌ خطأ في تهيئة قاعدة البيانات:', error.message);
+    throw error;
+  }
+}
+
 // تصدير تجمع الاتصالات مباشرة للتوافق مع الكود الحالي
 module.exports = pool;
 module.exports.testConnection = testConnection;
+module.exports.initializeDatabase = initializeDatabase;

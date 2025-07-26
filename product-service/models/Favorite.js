@@ -34,7 +34,7 @@ class Favorite {
       const itemDataJson = JSON.stringify(itemData);
       
       // إنشاء المفضلة
-      const [result] = await pool.query(
+      const [result] = await pool.execute(
         `INSERT INTO favorites 
         (user_id, item_type, item_id, item_model, item_data, notes, added_at, created_at, updated_at) 
         VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW(), NOW())`,
@@ -54,7 +54,7 @@ class Favorite {
   // البحث عن مفضلة بواسطة المعرف
   static async findById(id) {
     try {
-      const [rows] = await pool.query('SELECT * FROM favorites WHERE id = ?', [id]);
+      const [rows] = await pool.execute('SELECT * FROM favorites WHERE id = ?', [id]);
       if (rows.length === 0) return null;
       
       return this.formatFavorite(rows[0]);
@@ -67,7 +67,7 @@ class Favorite {
   // البحث عن مفضلة بواسطة المستخدم ونوع العنصر ومعرف العنصر
   static async findOne(userId, itemType, itemId) {
     try {
-      const [rows] = await pool.query(
+      const [rows] = await pool.execute(
         'SELECT * FROM favorites WHERE user_id = ? AND item_type = ? AND item_id = ?',
         [userId, itemType, itemId]
       );
@@ -98,7 +98,7 @@ class Favorite {
       query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
       queryParams.push(limit, offset);
       
-      const [rows] = await pool.query(query, queryParams);
+      const [rows] = await pool.execute(query, queryParams);
       
       // تنسيق المفضلات
       const favorites = rows.map(row => this.formatFavorite(row));
@@ -112,7 +112,7 @@ class Favorite {
         countParams.push(itemType);
       }
       
-      const [countRows] = await pool.query(countQuery, countParams);
+      const [countRows] = await pool.execute(countQuery, countParams);
       
       return {
         favorites,
@@ -147,7 +147,7 @@ class Favorite {
       
       if (favorite) {
         // إذا كان العنصر موجودًا بالفعل في المفضلة، قم بإزالته
-        await pool.query('DELETE FROM favorites WHERE id = ?', [favorite.id]);
+        await pool.execute('DELETE FROM favorites WHERE id = ?', [favorite.id]);
         return { action: 'removed', favorite: null };
       } else {
         // إذا لم يكن العنصر موجودًا في المفضلة، قم بإضافته
@@ -170,7 +170,7 @@ class Favorite {
   // حذف مفضلة
   static async delete(id) {
     try {
-      const [result] = await pool.query('DELETE FROM favorites WHERE id = ?', [id]);
+      const [result] = await pool.execute('DELETE FROM favorites WHERE id = ?', [id]);
       return result.affectedRows > 0;
     } catch (error) {
       console.error('خطأ في حذف المفضلة:', error);

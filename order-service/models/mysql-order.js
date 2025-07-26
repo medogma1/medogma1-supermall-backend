@@ -12,40 +12,83 @@ const STATUS = {
 };
 
 class Order {
+  constructor(data) {
+    this.id = data.id;
+    this.userId = data.user_id || data.userId;
+    this.productId = data.product_id || data.productId;
+    this.quantity = data.quantity;
+    this.status = data.status;
+    this.price = data.price;
+    this.totalAmount = data.total_amount || data.totalAmount;
+    this.currency = data.currency || 'EGP';
+    this.shippingAddressId = data.shipping_address_id || data.shippingAddressId;
+    this.paymentId = data.payment_id || data.paymentId;
+    this.notes = data.notes;
+    this.discountApplied = data.discount_applied || data.discountApplied || 0;
+    this.couponCode = data.coupon_code || data.couponCode;
+    this.taxAmount = data.tax_amount || data.taxAmount || 0;
+    this.estimatedDeliveryDate = data.estimated_delivery_date || data.estimatedDeliveryDate;
+    this.createdAt = data.created_at || data.createdAt;
+    this.updatedAt = data.updated_at || data.updatedAt;
+  }
+
   // إنشاء طلب جديد
   static async create(orderData) {
     try {
-      const {
-        userId,
-        productId,
-        quantity = 1,
-        price,
-        shippingAddressId,
-        notes = null,
-        discountApplied = 0,
-        couponCode = null,
-        taxAmount = 0,
-        currency = 'EGP'
-      } = orderData;
-
-      // حساب المبلغ الإجمالي
-      const totalAmount = (price * quantity) - discountApplied + taxAmount;
-
-      const [result] = await pool.query(
-        `INSERT INTO orders 
-        (user_id, product_id, quantity, status, price, total_amount, currency, shipping_address_id, 
-        payment_id, notes, discount_applied, coupon_code, tax_amount, estimated_delivery_date, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [userId, productId, quantity, STATUS.PENDING, price, totalAmount, currency, shippingAddressId, 
-        null, notes, discountApplied, couponCode, taxAmount, null]
-      );
-
-      if (result.insertId) {
-        return this.findById(result.insertId);
+      // التحقق من صحة البيانات
+      if (!orderData.userId) {
+        throw new Error('User ID is required');
       }
-      return null;
+      if (!orderData.productId) {
+        throw new Error('Product ID is required');
+      }
+      if (!orderData.quantity || orderData.quantity < 1) {
+        throw new Error('Quantity must be at least 1');
+      }
+      if (!orderData.price || orderData.price < 0) {
+        throw new Error('Price cannot be negative');
+      }
+      if (!orderData.shippingAddressId) {
+        throw new Error('Shipping address ID is required');
+      }
+
+      // حساب المبلغ الإجمالي إذا لم يتم توفيره
+      const totalAmount = orderData.totalAmount || 
+        (orderData.price * orderData.quantity) - (orderData.discountApplied || 0) + (orderData.taxAmount || 0);
+
+      const query = `
+        INSERT INTO orders (
+          user_id, product_id, quantity, status, price, total_amount, currency,
+          shipping_address_id, payment_id, notes, discount_applied, coupon_code,
+          tax_amount, estimated_delivery_date, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+      `;
+
+      const values = [
+        orderData.userId,
+        orderData.productId,
+        orderData.quantity,
+        orderData.status || STATUS.PENDING,
+        orderData.price,
+        totalAmount,
+        orderData.currency || 'EGP',
+        orderData.shippingAddressId,
+        orderData.paymentId || null,
+        orderData.notes || null,
+        orderData.discountApplied || 0,
+        orderData.couponCode || null,
+        orderData.taxAmount || 0,
+        orderData.estimatedDeliveryDate || null
+      ];
+
+      const [result] = await pool.execute(query, values);
+      
+      if (!result.insertId) {
+        throw new Error('Failed to create order');
+      }
+
+      return this.findById(result.insertId);
     } catch (error) {
-      console.error('خطأ في إنشاء الطلب:', error);
       throw error;
     }
   }
@@ -53,60 +96,93 @@ class Order {
   // البحث عن طلب بواسطة المعرف
   static async findById(id) {
     try {
-      const [rows] = await pool.query('SELECT * FROM orders WHERE id = ?', [id]);
-      if (rows.length === 0) return null;
+      const [rows] = await pool.execute('SELECT * FROM orders WHERE id = ?', [id]);
       
-      return this.formatOrder(rows[0]);
+      if (rows.length === 0) {
+        return null;
+      }
+      
+      return new Order(rows[0]);
     } catch (error) {
-      console.error('خطأ في البحث عن الطلب بواسطة المعرف:', error);
       throw error;
     }
   }
 
-  // الحصول على طلبات المستخدم
+  // الحصول على جميع الطلبات
+  static async findAll(options = {}) {
+    try {
+      const { page = 1, limit = 10, status } = options;
+      const offset = (page - 1) * limit;
+      
+      let query = 'SELECT * FROM orders';
+      const params = [];
+      
+      if (status) {
+        query += ' WHERE status = ?';
+        params.push(status);
+      }
+      
+      query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
+      params.push(parseInt(limit), offset);
+      
+      const [rows] = await pool.execute(query, params);
+      
+      return rows.map(row => new Order(row));
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // الحصول على طلبات العميل
   static async findByUserId(userId, options = {}) {
     try {
       const { page = 1, limit = 10, status } = options;
       const offset = (page - 1) * limit;
       
       let query = 'SELECT * FROM orders WHERE user_id = ?';
-      const queryParams = [userId];
+      const params = [userId];
       
       if (status) {
         query += ' AND status = ?';
-        queryParams.push(status);
+        params.push(status);
       }
       
       query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-      queryParams.push(limit, offset);
+      params.push(parseInt(limit), offset);
       
-      const [rows] = await pool.query(query, queryParams);
+      const [rows] = await pool.execute(query, params);
       
-      // تنسيق الطلبات
-      const orders = rows.map(row => this.formatOrder(row));
+      return rows.map(row => new Order(row));
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // الحصول على طلبات البائع
+  static async findByVendorId(vendorId, options = {}) {
+    try {
+      const { page = 1, limit = 10, status } = options;
+      const offset = (page - 1) * limit;
       
-      // الحصول على العدد الإجمالي للطلبات
-      let countQuery = 'SELECT COUNT(*) as total FROM orders WHERE user_id = ?';
-      const countParams = [userId];
+      let query = `
+        SELECT o.* FROM orders o
+        JOIN products p ON o.product_id = p.id
+        WHERE p.vendor_id = ?
+      `;
+      const params = [vendorId];
       
       if (status) {
-        countQuery += ' AND status = ?';
-        countParams.push(status);
+        query += ' AND o.status = ?';
+        params.push(status);
       }
       
-      const [countRows] = await pool.query(countQuery, countParams);
+      query += ' ORDER BY o.created_at DESC LIMIT ? OFFSET ?';
+      params.push(parseInt(limit), offset);
       
-      return {
-        orders,
-        pagination: {
-          total: countRows[0].total,
-          page,
-          limit,
-          pages: Math.ceil(countRows[0].total / limit)
-        }
-      };
+      const [rows] = await pool.execute(query, params);
+      
+      return rows.map(row => new Order(row));
     } catch (error) {
-      console.error('خطأ في الحصول على طلبات المستخدم:', error);
       throw error;
     }
   }
@@ -115,192 +191,142 @@ class Order {
   static async updateStatus(id, status) {
     try {
       if (!Object.values(STATUS).includes(status)) {
-        throw new Error('حالة الطلب غير صالحة');
+        throw new Error('Invalid status');
       }
       
-      const [result] = await pool.query(
-        'UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?',
-        [status, id]
-      );
+      const query = 'UPDATE orders SET status = ?, updated_at = NOW() WHERE id = ?';
+      await pool.execute(query, [status, id]);
       
-      if (result.affectedRows > 0) {
-        return this.findById(id);
-      }
-      return null;
+      return this.findById(id);
     } catch (error) {
-      console.error('خطأ في تحديث حالة الطلب:', error);
       throw error;
     }
   }
 
-  // تحديث معلومات الشحن
-  static async updateShippingInfo(id, shippingInfo) {
+  // تحديث بيانات الطلب
+  static async update(id, updateData) {
     try {
-      const { trackingNumber, carrier, estimatedDeliveryDate } = shippingInfo;
-      
-      const [result] = await pool.query(
-        'UPDATE orders SET tracking_number = ?, carrier = ?, estimated_delivery_date = ?, updated_at = NOW() WHERE id = ?',
-        [trackingNumber, carrier, estimatedDeliveryDate, id]
-      );
-      
-      if (result.affectedRows > 0) {
-        return this.findById(id);
-      }
-      return null;
-    } catch (error) {
-      console.error('خطأ في تحديث معلومات الشحن:', error);
-      throw error;
-    }
-  }
-
-  // تحديث معلومات الدفع
-  static async updatePaymentInfo(id, paymentId) {
-    try {
-      const [result] = await pool.query(
-        'UPDATE orders SET payment_id = ?, updated_at = NOW() WHERE id = ?',
-        [paymentId, id]
-      );
-      
-      if (result.affectedRows > 0) {
-        return this.findById(id);
-      }
-      return null;
-    } catch (error) {
-      console.error('خطأ في تحديث معلومات الدفع:', error);
-      throw error;
-    }
-  }
-
-  // إلغاء الطلب
-  static async cancelOrder(id) {
-    try {
-      // التحقق من إمكانية إلغاء الطلب
       const order = await this.findById(id);
       if (!order) {
-        throw new Error('الطلب غير موجود');
+        throw new Error('Order not found');
       }
       
-      if (order.status !== STATUS.PENDING && order.status !== STATUS.CONFIRMED) {
-        throw new Error('لا يمكن إلغاء هذا الطلب في حالته الحالية');
-      }
+      const allowedFields = [
+        'status', 'payment_id', 'notes', 'estimated_delivery_date'
+      ];
       
-      return this.updateStatus(id, STATUS.CANCELLED);
-    } catch (error) {
-      console.error('خطأ في إلغاء الطلب:', error);
-      throw error;
-    }
-  }
-
-  // إرجاع الطلب
-  static async returnOrder(id) {
-    try {
-      // التحقق من إمكانية إرجاع الطلب
-      const order = await this.findById(id);
-      if (!order) {
-        throw new Error('الطلب غير موجود');
-      }
+      const setClause = [];
+      const values = [];
       
-      if (order.status !== STATUS.DELIVERED) {
-        throw new Error('لا يمكن إرجاع هذا الطلب في حالته الحالية');
-      }
-      
-      return this.updateStatus(id, STATUS.RETURNED);
-    } catch (error) {
-      console.error('خطأ في إرجاع الطلب:', error);
-      throw error;
-    }
-  }
-
-  // الحصول على جميع الطلبات (للمسؤولين)
-  static async findAll(options = {}) {
-    try {
-      const { page = 1, limit = 10, status, sortBy = 'created_at', sortOrder = 'DESC' } = options;
-      const offset = (page - 1) * limit;
-      
-      let query = 'SELECT * FROM orders';
-      const queryParams = [];
-      
-      if (status) {
-        query += ' WHERE status = ?';
-        queryParams.push(status);
-      }
-      
-      query += ` ORDER BY ${sortBy} ${sortOrder} LIMIT ? OFFSET ?`;
-      queryParams.push(limit, offset);
-      
-      const [rows] = await pool.query(query, queryParams);
-      
-      // تنسيق الطلبات
-      const orders = rows.map(row => this.formatOrder(row));
-      
-      // الحصول على العدد الإجمالي للطلبات
-      let countQuery = 'SELECT COUNT(*) as total FROM orders';
-      const countParams = [];
-      
-      if (status) {
-        countQuery += ' WHERE status = ?';
-        countParams.push(status);
-      }
-      
-      const [countRows] = await pool.query(countQuery, countParams);
-      
-      return {
-        orders,
-        pagination: {
-          total: countRows[0].total,
-          page,
-          limit,
-          pages: Math.ceil(countRows[0].total / limit)
+      Object.keys(updateData).forEach(key => {
+        const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+        if (allowedFields.includes(snakeKey)) {
+          setClause.push(`${snakeKey} = ?`);
+          // تحويل قيم undefined إلى null
+          values.push(updateData[key] === undefined ? null : updateData[key]);
         }
-      };
+      });
+      
+      if (setClause.length === 0) {
+        throw new Error('No valid fields to update');
+      }
+      
+      setClause.push('updated_at = NOW()');
+      values.push(id);
+      
+      const query = `UPDATE orders SET ${setClause.join(', ')} WHERE id = ?`;
+      await pool.execute(query, values);
+      
+      return this.findById(id);
     } catch (error) {
-      console.error('خطأ في الحصول على جميع الطلبات:', error);
       throw error;
     }
   }
 
-  // تنسيق الطلب (تحويل snake_case إلى camelCase)
-  static formatOrder(order) {
+  // حذف طلب
+  static async delete(id) {
+    try {
+      const order = await this.findById(id);
+      if (!order) {
+        throw new Error('Order not found');
+      }
+      
+      await pool.execute('DELETE FROM orders WHERE id = ?', [id]);
+      return true;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // Helper methods
+  isPending() {
+    return this.status === STATUS.PENDING;
+  }
+
+  isConfirmed() {
+    return this.status === STATUS.CONFIRMED;
+  }
+
+  isShipped() {
+    return this.status === STATUS.SHIPPED;
+  }
+
+  isDelivered() {
+    return this.status === STATUS.DELIVERED;
+  }
+
+  isCancelled() {
+    return this.status === STATUS.CANCELLED;
+  }
+
+  isReturned() {
+    return this.status === STATUS.RETURNED;
+  }
+
+  getStatusText() {
+    switch (this.status) {
+      case STATUS.PENDING: return 'Pending';
+      case STATUS.CONFIRMED: return 'Confirmed';
+      case STATUS.SHIPPED: return 'Shipped';
+      case STATUS.DELIVERED: return 'Delivered';
+      case STATUS.CANCELLED: return 'Cancelled';
+      case STATUS.RETURNED: return 'Returned';
+      default: return 'Unknown';
+    }
+  }
+
+  calculateTotalAmount() {
+    return (this.price * this.quantity) - this.discountApplied + this.taxAmount;
+  }
+
+  canBeCancelled() {
+    return this.status === STATUS.PENDING || this.status === STATUS.CONFIRMED;
+  }
+
+  canBeReturned() {
+    return this.status === STATUS.DELIVERED;
+  }
+
+  // تحويل إلى JSON
+  toJSON() {
     return {
-      id: order.id,
-      userId: order.user_id,
-      productId: order.product_id,
-      quantity: order.quantity,
-      status: order.status,
-      price: order.price,
-      totalAmount: order.total_amount,
-      currency: order.currency,
-      shippingAddressId: order.shipping_address_id,
-      paymentId: order.payment_id,
-      notes: order.notes,
-      discountApplied: order.discount_applied,
-      couponCode: order.coupon_code,
-      taxAmount: order.tax_amount,
-      estimatedDeliveryDate: order.estimated_delivery_date,
-      trackingNumber: order.tracking_number,
-      carrier: order.carrier,
-      createdAt: order.created_at,
-      updatedAt: order.updated_at,
-      // Helper methods
-      isPending: () => order.status === STATUS.PENDING,
-      isConfirmed: () => order.status === STATUS.CONFIRMED,
-      isShipped: () => order.status === STATUS.SHIPPED,
-      isDelivered: () => order.status === STATUS.DELIVERED,
-      isCancelled: () => order.status === STATUS.CANCELLED,
-      isReturned: () => order.status === STATUS.RETURNED,
-      getStatusText: () => {
-        switch (order.status) {
-          case STATUS.PENDING: return 'Pending';
-          case STATUS.CONFIRMED: return 'Confirmed';
-          case STATUS.SHIPPED: return 'Shipped';
-          case STATUS.DELIVERED: return 'Delivered';
-          case STATUS.CANCELLED: return 'Cancelled';
-          case STATUS.RETURNED: return 'Returned';
-          default: return 'Unknown';
-        }
-      },
-      canBeCancelled: () => order.status === STATUS.PENDING || order.status === STATUS.CONFIRMED,
-      canBeReturned: () => order.status === STATUS.DELIVERED
+      id: this.id,
+      userId: this.userId,
+      productId: this.productId,
+      quantity: this.quantity,
+      status: this.status,
+      price: this.price,
+      totalAmount: this.totalAmount,
+      currency: this.currency,
+      shippingAddressId: this.shippingAddressId,
+      paymentId: this.paymentId,
+      notes: this.notes,
+      discountApplied: this.discountApplied,
+      couponCode: this.couponCode,
+      taxAmount: this.taxAmount,
+      estimatedDeliveryDate: this.estimatedDeliveryDate,
+      createdAt: this.createdAt,
+      updatedAt: this.updatedAt
     };
   }
 }

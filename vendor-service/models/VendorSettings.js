@@ -45,15 +45,29 @@ class VendorSettings {
   static fromDatabaseRow(row) {
     if (!row) return null;
     
+    // Helper function to safely parse JSON
+    const safeJsonParse = (jsonString) => {
+      if (!jsonString) return null;
+      try {
+        // If it's already an object, return it
+        if (typeof jsonString === 'object') return jsonString;
+        // If it's a string, try to parse it
+        return JSON.parse(jsonString);
+      } catch (error) {
+        console.warn('Failed to parse JSON:', jsonString, error.message);
+        return null;
+      }
+    };
+    
     return new VendorSettings({
       id: row.id,
       vendor_id: row.vendor_id,
-      theme: row.theme ? JSON.parse(row.theme) : null,
-      layout: row.layout ? JSON.parse(row.layout) : null,
-      business: row.business ? JSON.parse(row.business) : null,
-      seo: row.seo ? JSON.parse(row.seo) : null,
-      social_media: row.social_media ? JSON.parse(row.social_media) : null,
-      notifications: row.notifications ? JSON.parse(row.notifications) : null,
+      theme: safeJsonParse(row.theme),
+      layout: safeJsonParse(row.layout),
+      business: safeJsonParse(row.business),
+      seo: safeJsonParse(row.seo),
+      social_media: safeJsonParse(row.social_media),
+      notifications: safeJsonParse(row.notifications),
       created_at: row.created_at,
       updated_at: row.updated_at
     });
@@ -110,6 +124,12 @@ class VendorSettings {
    */
   _getDefaultBusiness() {
     return {
+      storeName: '',
+      storeDescription: '',
+      contactEmail: '',
+      contactPhone: '',
+      storeAddress: '',
+      storeLogoUrl: '',
       storeCurrency: 'EGP',
       taxRate: 14,
       shippingOptions: [],
@@ -227,9 +247,13 @@ class VendorSettings {
     const row = settings.toDatabaseRow();
     
     try {
-      const [result] = await db.query(
+      // تحويل قيم undefined إلى null
+      const values = [row.vendor_id, row.theme, row.layout, row.business, row.seo, row.social_media, row.notifications];
+      const cleanValues = values.map(value => value === undefined ? null : value);
+      
+      const [result] = await db.execute(
         'INSERT INTO vendor_settings (vendor_id, theme, layout, business, seo, social_media, notifications) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [row.vendor_id, row.theme, row.layout, row.business, row.seo, row.social_media, row.notifications]
+        cleanValues
       );
       
       settings.id = result.insertId;
@@ -247,7 +271,7 @@ class VendorSettings {
    */
   static async findByVendorId(vendorId) {
     try {
-      const [rows] = await db.query('SELECT * FROM vendor_settings WHERE vendor_id = ?', [vendorId]);
+      const [rows] = await db.execute('SELECT * FROM vendor_settings WHERE vendor_id = ?', [vendorId]);
       return rows.length ? VendorSettings.fromDatabaseRow(rows[0]) : null;
     } catch (error) {
       console.error('Error finding vendor settings:', error);
@@ -282,9 +306,13 @@ class VendorSettings {
       
       const row = updatedSettings.toDatabaseRow();
       
-      await db.query(
+      // تحويل قيم undefined إلى null
+      const values = [row.theme, row.layout, row.business, row.seo, row.social_media, row.notifications, vendorId];
+      const cleanValues = values.map(value => value === undefined ? null : value);
+      
+      await db.execute(
         'UPDATE vendor_settings SET theme = ?, layout = ?, business = ?, seo = ?, social_media = ?, notifications = ? WHERE vendor_id = ?',
-        [row.theme, row.layout, row.business, row.seo, row.social_media, row.notifications, vendorId]
+        cleanValues
       );
       
       return updatedSettings;
@@ -301,7 +329,7 @@ class VendorSettings {
    */
   static async delete(vendorId) {
     try {
-      const [result] = await db.query('DELETE FROM vendor_settings WHERE vendor_id = ?', [vendorId]);
+      const [result] = await db.execute('DELETE FROM vendor_settings WHERE vendor_id = ?', [vendorId]);
       return result.affectedRows > 0;
     } catch (error) {
       console.error('Error deleting vendor settings:', error);

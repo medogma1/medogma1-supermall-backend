@@ -1,5 +1,6 @@
 // analytics-service/models/mysql-customer-analytics.js
 const mysql = require('mysql2/promise');
+const { parseJsonField } = require('../../utils/jsonUtils');
 require('dotenv').config();
 
 // إعدادات الاتصال بقاعدة البيانات MySQL الموحدة
@@ -95,10 +96,10 @@ async function getCustomerAnalytics(storeId, period) {
       return null;
     }
     
-    // تحويل الحقول من JSON string إلى كائنات JavaScript
+    // تحويل الحقول من JSON string إلى كائنات JavaScript مع معالجة الأخطاء
     const customerAnalytics = {
       ...rows[0],
-      customersByRegion: JSON.parse(rows[0].customers_by_region || '{}')
+      customersByRegion: parseJsonField(rows[0].customers_by_region, {})
     };
     
     return customerAnalytics;

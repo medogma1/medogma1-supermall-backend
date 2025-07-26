@@ -10,7 +10,7 @@ class Product {
       // تحويل المصفوفة إلى نص JSON
       const tagsJson = JSON.stringify(tags);
       
-      const [result] = await pool.query(
+      const [result] = await pool.execute(
         `INSERT INTO products 
         (name, description, price, vendor_id, category_id, image_url, stock_quantity, tags, rating, review_count, is_active, created_at) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -30,7 +30,7 @@ class Product {
   // البحث عن منتج بواسطة المعرف
   static async findById(id) {
     try {
-      const [rows] = await pool.query('SELECT * FROM products WHERE id = ?', [id]);
+      const [rows] = await pool.execute('SELECT * FROM products WHERE id = ?', [id]);
       if (rows.length === 0) return null;
       
       // تحويل النص JSON إلى مصفوفة
@@ -100,8 +100,8 @@ class Product {
         SELECT COUNT(*) as total FROM products ${whereClause}
       `;
       
-      const [rows] = await pool.query(query, [...filterValues, limit, offset]);
-      const [countRows] = await pool.query(countQuery, filterValues);
+      const [rows] = await pool.execute(query, [...filterValues, limit, offset]);
+    const [countRows] = await pool.execute(countQuery, filterValues);
       
       // تحويل حقل tags من JSON إلى مصفوفة لكل منتج
       const products = rows.map(product => {
@@ -144,8 +144,8 @@ class Product {
       
       const searchParam = `%${query}%`;
       
-      const [rows] = await pool.query(searchQuery, [searchParam, searchParam, searchParam, limit, offset]);
-      const [countRows] = await pool.query(countQuery, [searchParam, searchParam, searchParam]);
+      const [rows] = await pool.execute(searchQuery, [searchParam, searchParam, searchParam, limit, offset]);
+    const [countRows] = await pool.execute(countQuery, [searchParam, searchParam, searchParam]);
       
       // تحويل حقل tags من JSON إلى مصفوفة لكل منتج
       const products = rows.map(product => {
@@ -201,7 +201,7 @@ class Product {
       if (updates.length > 0) {
         values.push(id); // إضافة معرف المنتج للشرط WHERE
         
-        const [result] = await pool.query(
+        const [result] = await pool.execute(
           `UPDATE products SET ${updates.join(', ')} WHERE id = ?`,
           values
         );
@@ -221,7 +221,7 @@ class Product {
   // حذف منتج
   static async delete(id) {
     try {
-      const [result] = await pool.query('DELETE FROM products WHERE id = ?', [id]);
+      const [result] = await pool.execute('DELETE FROM products WHERE id = ?', [id]);
       return result.affectedRows > 0;
     } catch (error) {
       console.error('خطأ في حذف المنتج:', error);
@@ -232,7 +232,7 @@ class Product {
   // تحديث تقييم المنتج
   static async updateRating(id, rating, reviewCount) {
     try {
-      const [result] = await pool.query(
+      const [result] = await pool.execute(
         'UPDATE products SET rating = ?, review_count = ? WHERE id = ?',
         [rating, reviewCount, id]
       );

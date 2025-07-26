@@ -14,7 +14,7 @@ class Category {
       // تحويل البيانات الوصفية إلى JSON إذا وجدت
       const metadata = categoryData.metadata ? JSON.stringify(categoryData.metadata) : '{}';
       
-      const [result] = await pool.query(
+      const [result] = await pool.execute(
         `INSERT INTO categories 
         (name, slug, description, image, icon, color, is_active, is_featured, display_order, products, metadata, created_at, updated_at) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
@@ -42,7 +42,7 @@ class Category {
       // تحويل البيانات الوصفية إلى JSON إذا وجدت
       const metadata = subCategoryData.metadata ? JSON.stringify(subCategoryData.metadata) : '{}';
       
-      const [result] = await pool.query(
+      const [result] = await pool.execute(
         `INSERT INTO sub_categories 
         (parent_id, name, slug, description, image, is_active, products, metadata, created_at, updated_at) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
@@ -62,7 +62,7 @@ class Category {
   // البحث عن فئة بواسطة المعرف
   static async findById(id) {
     try {
-      const [rows] = await pool.query(
+      const [rows] = await pool.execute(
         `SELECT c.*, 
         (SELECT COUNT(*) FROM products WHERE category_id = c.id) as product_count 
         FROM categories c WHERE c.id = ?`,
@@ -81,7 +81,7 @@ class Category {
       }
       
       // الحصول على الفئات الفرعية
-      const [subCategories] = await pool.query(
+      const [subCategories] = await pool.execute(
         `SELECT *, 
         (SELECT COUNT(*) FROM products WHERE sub_category_id = id) as product_count 
         FROM sub_categories WHERE parent_id = ?`,
@@ -108,7 +108,7 @@ class Category {
   // البحث عن فئة فرعية بواسطة المعرف
   static async findSubCategoryById(id) {
     try {
-      const [rows] = await pool.query(
+      const [rows] = await pool.execute(
         `SELECT *, 
         (SELECT COUNT(*) FROM products WHERE sub_category_id = id) as product_count 
         FROM sub_categories WHERE id = ?`,
@@ -150,7 +150,7 @@ class Category {
       
       query += ' ORDER BY c.display_order ASC, c.name ASC';
       
-      const [rows] = await pool.query(query);
+      const [rows] = await pool.execute(query);
       
       // تحويل البيانات الوصفية وإضافة الفئات الفرعية
       const categories = [];
@@ -178,7 +178,7 @@ class Category {
           
           subQuery += ' ORDER BY name ASC';
           
-          const [subCategories] = await pool.query(subQuery, [category.id]);
+          const [subCategories] = await pool.execute(subQuery, [category.id]);
           
           // تحويل البيانات الوصفية للفئات الفرعية
           category.subCategories = subCategories.map(sub => {
@@ -245,7 +245,7 @@ class Category {
       if (updates.length > 0) {
         values.push(id); // إضافة معرف الفئة للشرط WHERE
         
-        const [result] = await pool.query(
+        const [result] = await pool.execute(
           `UPDATE categories SET ${updates.join(', ')} WHERE id = ?`,
           values
         );
@@ -303,7 +303,7 @@ class Category {
       if (updates.length > 0) {
         values.push(id); // إضافة معرف الفئة الفرعية للشرط WHERE
         
-        const [result] = await pool.query(
+        const [result] = await pool.execute(
           `UPDATE sub_categories SET ${updates.join(', ')} WHERE id = ?`,
           values
         );
@@ -324,10 +324,10 @@ class Category {
   static async delete(id) {
     try {
       // حذف الفئات الفرعية أولاً
-      await pool.query('DELETE FROM sub_categories WHERE parent_id = ?', [id]);
+      await pool.execute('DELETE FROM sub_categories WHERE parent_id = ?', [id]);
       
       // ثم حذف الفئة الرئيسية
-      const [result] = await pool.query('DELETE FROM categories WHERE id = ?', [id]);
+      const [result] = await pool.execute('DELETE FROM categories WHERE id = ?', [id]);
       
       return result.affectedRows > 0;
     } catch (error) {
@@ -339,7 +339,7 @@ class Category {
   // حذف فئة فرعية
   static async deleteSubCategory(id) {
     try {
-      const [result] = await pool.query('DELETE FROM sub_categories WHERE id = ?', [id]);
+      const [result] = await pool.execute('DELETE FROM sub_categories WHERE id = ?', [id]);
       return result.affectedRows > 0;
     } catch (error) {
       console.error('خطأ في حذف الفئة الفرعية:', error);
@@ -350,14 +350,14 @@ class Category {
   // تحديث عدد المنتجات في الفئة
   static async updateProductCount(id) {
     try {
-      const [rows] = await pool.query(
+      const [rows] = await pool.execute(
         'SELECT COUNT(*) as count FROM products WHERE category_id = ?',
         [id]
       );
       
       const count = rows[0].count;
       
-      await pool.query(
+      await pool.execute(
         'UPDATE categories SET products = ? WHERE id = ?',
         [count, id]
       );
@@ -372,14 +372,14 @@ class Category {
   // تحديث عدد المنتجات في الفئة الفرعية
   static async updateSubCategoryProductCount(id) {
     try {
-      const [rows] = await pool.query(
+      const [rows] = await pool.execute(
         'SELECT COUNT(*) as count FROM products WHERE sub_category_id = ?',
         [id]
       );
       
       const count = rows[0].count;
       
-      await pool.query(
+      await pool.execute(
         'UPDATE sub_categories SET products = ? WHERE id = ?',
         [count, id]
       );

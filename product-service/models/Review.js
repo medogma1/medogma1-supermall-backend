@@ -55,11 +55,12 @@ class Review {
       }
       
       // إنشاء المراجعة
-      const [result] = await pool.query(
+      const status = reviewData.status || REVIEW_STATUS.PENDING;
+      const [result] = await pool.execute(
         `INSERT INTO reviews 
         (user_id, review_type, product_id, vendor_id, rating, comment, status, reports, created_at, updated_at) 
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [userId, reviewType, productId || null, vendorId || null, rating, comment, REVIEW_STATUS.PENDING, '{}']
+        [userId, reviewType, productId || null, vendorId || null, rating, comment, status, '[]']
       );
       
       if (result.insertId) {
@@ -80,13 +81,19 @@ class Review {
   // البحث عن مراجعة بواسطة المعرف
   static async findById(id) {
     try {
-      const [rows] = await pool.query('SELECT * FROM reviews WHERE id = ?', [id]);
+      const [rows] = await pool.execute('SELECT * FROM reviews WHERE id = ?', [id]);
       if (rows.length === 0) return null;
       
       const review = rows[0];
       
       // تحويل التقارير من JSON إلى كائن
-      review.reports = JSON.parse(review.reports || '[]');
+      try {
+        const parsed = JSON.parse(review.reports || '[]');
+        review.reports = Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.warn('Failed to parse reports JSON for review', review.id, ':', e.message);
+        review.reports = [];
+      }
       
       return this.formatReview(review);
     } catch (error) {
@@ -98,7 +105,13 @@ class Review {
   // البحث عن مراجعة بواسطة المستخدم والمنتج
   static async findByUserAndProduct(userId, productId) {
     try {
-      const [rows] = await pool.query(
+      // التحقق من أن المعاملات ليست undefined
+      if (userId === undefined || productId === undefined) {
+        console.error('خطأ: معاملات البحث تحتوي على قيم undefined', { userId, productId });
+        return null;
+      }
+      
+      const [rows] = await pool.execute(
         'SELECT * FROM reviews WHERE user_id = ? AND product_id = ?',
         [userId, productId]
       );
@@ -106,7 +119,13 @@ class Review {
       if (rows.length === 0) return null;
       
       const review = rows[0];
-      review.reports = JSON.parse(review.reports || '[]');
+      try {
+        const parsed = JSON.parse(review.reports || '[]');
+        review.reports = Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.warn('Failed to parse reports JSON for review', review.id, ':', e.message);
+        review.reports = [];
+      }
       
       return this.formatReview(review);
     } catch (error) {
@@ -118,7 +137,13 @@ class Review {
   // البحث عن مراجعة بواسطة المستخدم والبائع
   static async findByUserAndVendor(userId, vendorId) {
     try {
-      const [rows] = await pool.query(
+      // التحقق من أن المعاملات ليست undefined
+      if (userId === undefined || vendorId === undefined) {
+        console.error('خطأ: معاملات البحث تحتوي على قيم undefined', { userId, vendorId });
+        return null;
+      }
+      
+      const [rows] = await pool.execute(
         'SELECT * FROM reviews WHERE user_id = ? AND vendor_id = ?',
         [userId, vendorId]
       );
@@ -126,7 +151,15 @@ class Review {
       if (rows.length === 0) return null;
       
       const review = rows[0];
-      review.reports = JSON.parse(review.reports || '[]');
+      
+      // تحويل التقارير من JSON إلى كائن مع معالجة آمنة للأخطاء
+      try {
+        const parsed = JSON.parse(review.reports || '[]');
+        review.reports = Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.warn('Failed to parse reports JSON for review', review.id, ':', e.message);
+        review.reports = [];
+      }
       
       return this.formatReview(review);
     } catch (error) {
@@ -152,11 +185,18 @@ class Review {
       query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
       queryParams.push(limit, offset);
       
-      const [rows] = await pool.query(query, queryParams);
+      const [rows] = await pool.execute(query, queryParams);
       
-      // تحويل التقارير من JSON إلى كائن لكل مراجعة
+      // تحويل التقارير من JSON إلى كائج لكل مراجعة
       const reviews = rows.map(review => {
-        review.reports = JSON.parse(review.reports || '[]');
+        try {
+          const parsed = JSON.parse(review.reports || '[]');
+          // التأكد من أن النتيجة مصفوفة
+          review.reports = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          console.warn('Failed to parse reports JSON for review', review.id, ':', e.message);
+          review.reports = [];
+        }
         return this.formatReview(review);
       });
       
@@ -169,7 +209,7 @@ class Review {
         countParams.push(status);
       }
       
-      const [countRows] = await pool.query(countQuery, countParams);
+      const [countRows] = await pool.execute(countQuery, countParams);
       
       return {
         reviews,
@@ -203,11 +243,18 @@ class Review {
       query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
       queryParams.push(limit, offset);
       
-      const [rows] = await pool.query(query, queryParams);
+      const [rows] = await pool.execute(query, queryParams);
       
       // تحويل التقارير من JSON إلى كائن لكل مراجعة
       const reviews = rows.map(review => {
-        review.reports = JSON.parse(review.reports || '[]');
+        try {
+          const parsed = JSON.parse(review.reports || '[]');
+          // التأكد من أن النتيجة مصفوفة
+          review.reports = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+          console.warn('Failed to parse reports JSON for review', review.id, ':', e.message);
+          review.reports = [];
+        }
         return this.formatReview(review);
       });
       
@@ -220,7 +267,7 @@ class Review {
         countParams.push(status);
       }
       
-      const [countRows] = await pool.query(countQuery, countParams);
+      const [countRows] = await pool.execute(countQuery, countParams);
       
       return {
         reviews,
@@ -244,7 +291,7 @@ class Review {
         throw new Error('حالة المراجعة غير صالحة');
       }
       
-      const [result] = await pool.query(
+      const [result] = await pool.execute(
         'UPDATE reviews SET status = ?, updated_at = NOW() WHERE id = ?',
         [status, id]
       );
@@ -296,7 +343,7 @@ class Review {
       const reports = [...review.reports, newReport];
       
       // تحديث المراجعة بالتقرير الجديد
-      const [result] = await pool.query(
+      const [result] = await pool.execute(
         'UPDATE reviews SET reports = ?, updated_at = NOW() WHERE id = ?',
         [JSON.stringify(reports), id]
       );
@@ -316,7 +363,7 @@ class Review {
   static async updateProductRating(productId) {
     try {
       // حساب متوسط التقييم من المراجعات المعتمدة فقط
-      const [rows] = await pool.query(
+      const [rows] = await pool.execute(
         'SELECT AVG(rating) as avg_rating, COUNT(*) as count FROM reviews WHERE product_id = ? AND status = ?',
         [productId, REVIEW_STATUS.APPROVED]
       );
@@ -325,7 +372,7 @@ class Review {
       const reviewCount = rows[0].count || 0;
       
       // تحديث المنتج بمتوسط التقييم وعدد المراجعات
-      await pool.query(
+      await pool.execute(
         'UPDATE products SET rating = ?, review_count = ? WHERE id = ?',
         [avgRating, reviewCount, productId]
       );
@@ -333,6 +380,104 @@ class Review {
       return { avgRating, reviewCount };
     } catch (error) {
       console.error('خطأ في تحديث متوسط تقييم المنتج:', error);
+      throw error;
+    }
+  }
+
+  // البحث عن مراجعات بواسطة المستخدم
+  static async findByUser(userId, conditions = {}) {
+    try {
+      let query = 'SELECT * FROM reviews WHERE user_id = ?';
+      const queryParams = [userId];
+      
+      // إضافة الشروط الإضافية
+      if (conditions.productId !== undefined && conditions.productId !== null) {
+        query += ' AND product_id = ?';
+        queryParams.push(conditions.productId);
+      }
+      
+      if (conditions.vendorId !== undefined && conditions.vendorId !== null) {
+        query += ' AND vendor_id = ?';
+        queryParams.push(conditions.vendorId);
+      }
+      
+      if (conditions.reviewType) {
+        query += ' AND review_type = ?';
+        queryParams.push(conditions.reviewType);
+      }
+      
+      if (conditions.status) {
+        query += ' AND status = ?';
+        queryParams.push(conditions.status);
+      }
+      
+      query += ' ORDER BY created_at DESC';
+      
+      const [rows] = await pool.execute(query, queryParams);
+      
+      // تحويل التقارير من JSON إلى كائن لكل مراجعة
+      const reviews = rows.map(review => {
+        review.reports = JSON.parse(review.reports || '[]');
+        return this.formatReview(review);
+      });
+      
+      return reviews;
+    } catch (error) {
+      console.error('خطأ في البحث عن مراجعات المستخدم:', error);
+      throw error;
+    }
+  }
+
+  // دالة find عامة للبحث في المراجعات
+  static async find(conditions = {}, options = {}) {
+    try {
+      const { page = 1, limit = 10, sort = 'created_at DESC' } = options;
+      const offset = (page - 1) * limit;
+      
+      let query = 'SELECT * FROM reviews WHERE 1=1';
+      const queryParams = [];
+      
+      // إضافة الشروط
+      if (conditions.userId) {
+        query += ' AND user_id = ?';
+        queryParams.push(conditions.userId);
+      }
+      
+      if (conditions.productId) {
+        query += ' AND product_id = ?';
+        queryParams.push(conditions.productId);
+      }
+      
+      if (conditions.vendorId) {
+        query += ' AND vendor_id = ?';
+        queryParams.push(conditions.vendorId);
+      }
+      
+      if (conditions.reviewType) {
+        query += ' AND review_type = ?';
+        queryParams.push(conditions.reviewType);
+      }
+      
+      if (conditions.status) {
+        query += ' AND status = ?';
+        queryParams.push(conditions.status);
+      }
+      
+      // إضافة الترتيب والحد
+      query += ` ORDER BY ${sort} LIMIT ? OFFSET ?`;
+      queryParams.push(limit, offset);
+      
+      const [rows] = await pool.execute(query, queryParams);
+      
+      // تحويل التقارير من JSON إلى كائن لكل مراجعة
+      const reviews = rows.map(review => {
+        review.reports = JSON.parse(review.reports || '[]');
+        return this.formatReview(review);
+      });
+      
+      return reviews;
+    } catch (error) {
+      console.error('خطأ في البحث العام في المراجعات:', error);
       throw error;
     }
   }

@@ -5,7 +5,7 @@ const { pool } = require('../config/database');
 // ─── عرض البيانات ─────────────────────────────
 exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId);
+    const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({
         status: 'error',
@@ -19,6 +19,8 @@ exports.getProfile = async (req, res) => {
     // إعداد بيانات المستخدم للإرجاع (حذف البيانات الحساسة)
     const userData = {
       id: user.id,
+      firstName: user.first_name,
+      lastName: user.last_name,
       username: user.username,
       email: user.email,
       role: user.role,
@@ -59,16 +61,16 @@ exports.getProfile = async (req, res) => {
 // ─── تعديل البيانات ─────────────────────────────
 exports.updateProfile = async (req, res) => {
   try {
-    const { username, email, phone, country, governorate, workshopAddress } = req.body;
-    const userId = req.user.userId;
+    const { first_name, last_name, email, phone, country, governorate, workshopAddress } = req.body;
+    const userId = req.user.id;
 
     // التحقق من البيانات المطلوبة
-    if (!username || !email) {
+    if ((!first_name && !last_name) || !email) {
       return res.status(400).json({
         status: 'error',
         message: 'جميع الحقول الأساسية مطلوبة',
         errors: {
-          username: !username ? 'اسم المستخدم مطلوب' : null,
+          first_name: (!first_name && !last_name) ? 'الاسم الأول مطلوب' : null,
           email: !email ? 'البريد الإلكتروني مطلوب' : null
         }
       });
@@ -113,7 +115,8 @@ exports.updateProfile = async (req, res) => {
 
     // تحديث بيانات المستخدم
     const updateData = {
-      username,
+      first_name: first_name || existingUser.first_name,
+      last_name: last_name || existingUser.last_name,
       email: email.toLowerCase(),
       updated_at: new Date()
     };
@@ -125,7 +128,7 @@ exports.updateProfile = async (req, res) => {
     if (workshopAddress) updateData.workshop_address = workshopAddress;
 
     // تنفيذ التحديث
-    await pool.query(
+    await pool.execute(
       'UPDATE users SET ? WHERE id = ?',
       [updateData, userId]
     );
@@ -136,6 +139,8 @@ exports.updateProfile = async (req, res) => {
     // إعداد بيانات المستخدم للإرجاع (حذف البيانات الحساسة)
     const userData = {
       id: updatedUser.id,
+      firstName: updatedUser.first_name,
+      lastName: updatedUser.last_name,
       username: updatedUser.username,
       email: updatedUser.email,
       role: updatedUser.role,

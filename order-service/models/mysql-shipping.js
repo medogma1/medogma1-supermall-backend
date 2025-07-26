@@ -1,21 +1,6 @@
 // order-service/models/mysql-shipping.js
-const mysql = require('mysql2/promise');
+const { pool } = require('../config/database');
 require('dotenv').config();
-
-// إعدادات الاتصال بقاعدة البيانات MySQL الموحدة
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'xx100100',
-  database: process.env.DB_NAME || 'supermall',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
-
-// إنشاء تجمع اتصالات
-const pool = mysql.createPool(dbConfig);
 
 // حالات الشحن
 const SHIPPING_STATUS = {
@@ -55,7 +40,7 @@ async function createShipping(shippingData) {
     }
     
     // إنشاء الشحنة
-    const [result] = await pool.query(
+    const [result] = await pool.execute(
       `INSERT INTO shipping 
        (order_id, address_id, status, shipping_cost, carrier, tracking_number, estimated_delivery_time, delivery_notes) 
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -78,7 +63,7 @@ async function createShipping(shippingData) {
 async function getShippingById(shippingId) {
   try {
     // الحصول على الشحنة
-    const [shippings] = await pool.query(
+    const [shippings] = await pool.execute(
       'SELECT * FROM shipping WHERE id = ?',
       [shippingId]
     );
@@ -90,7 +75,7 @@ async function getShippingById(shippingId) {
     const shipping = shippings[0];
     
     // الحصول على بيانات العنوان
-    const [addresses] = await pool.query(
+    const [addresses] = await pool.execute(
       'SELECT * FROM addresses WHERE id = ?',
       [shipping.address_id]
     );
@@ -119,7 +104,7 @@ async function getShippingById(shippingId) {
 async function getShippingByOrderId(orderId) {
   try {
     // الحصول على الشحنة
-    const [shippings] = await pool.query(
+    const [shippings] = await pool.execute(
       'SELECT * FROM shipping WHERE order_id = ?',
       [orderId]
     );
@@ -131,7 +116,7 @@ async function getShippingByOrderId(orderId) {
     const shipping = shippings[0];
     
     // الحصول على بيانات العنوان
-    const [addresses] = await pool.query(
+    const [addresses] = await pool.execute(
       'SELECT * FROM addresses WHERE id = ?',
       [shipping.address_id]
     );
@@ -203,7 +188,7 @@ async function updateShippingStatus(shippingId, status, additionalData = {}) {
     updateFields.push('updated_at = NOW()');
     updateValues.push(shippingId);
     
-    await pool.query(
+    await pool.execute(
       `UPDATE shipping SET ${updateFields.join(', ')} WHERE id = ?`,
       updateValues
     );
@@ -225,7 +210,7 @@ async function updateShippingStatus(shippingId, status, additionalData = {}) {
  */
 async function updateTrackingInfo(shippingId, trackingNumber, carrier) {
   try {
-    await pool.query(
+    await pool.execute(
       'UPDATE shipping SET tracking_number = ?, carrier = ?, updated_at = NOW() WHERE id = ?',
       [trackingNumber, carrier, shippingId]
     );
@@ -245,7 +230,7 @@ async function updateTrackingInfo(shippingId, trackingNumber, carrier) {
  */
 async function updateEstimatedDeliveryTime(shippingId, estimatedDeliveryTime) {
   try {
-    await pool.query(
+    await pool.execute(
       'UPDATE shipping SET estimated_delivery_time = ?, updated_at = NOW() WHERE id = ?',
       [estimatedDeliveryTime, shippingId]
     );
@@ -265,7 +250,7 @@ async function updateEstimatedDeliveryTime(shippingId, estimatedDeliveryTime) {
  */
 async function updateDeliveryNotes(shippingId, deliveryNotes) {
   try {
-    await pool.query(
+    await pool.execute(
       'UPDATE shipping SET delivery_notes = ?, updated_at = NOW() WHERE id = ?',
       [deliveryNotes, shippingId]
     );

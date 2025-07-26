@@ -19,9 +19,8 @@ exports.createNotification = async (req, res) => {
       user_id: recipient,
       title,
       message: body,
-      notification_type: type,
-      reference_id: data?.referenceId || null,
-      reference_type: data?.referenceType || null
+      type: type,
+      reference_id: data?.referenceId || null
     };
     
     const result = await notificationModel.createNotification(notificationData);

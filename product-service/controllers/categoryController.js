@@ -61,26 +61,27 @@ exports.getAllCategories = async (req, res) => {
   try {
     const { active, featured } = req.query;
     
-    // إنشاء فلتر للبحث
-    const filter = {};
-    
-    // إضافة فلتر للفئات النشطة إذا تم تحديده
-    if (active !== undefined) {
-      filter.isActive = active === 'true';
-    }
-    
-    // إضافة فلتر للفئات المميزة إذا تم تحديده
-    if (featured !== undefined) {
-      filter.isFeatured = featured === 'true';
-    }
+    // إنشاء خيارات للبحث
+    const options = {
+      includeSubCategories: true,
+      onlyActive: active === 'true'
+    };
     
     // الحصول على الفئات مع الفرز حسب ترتيب العرض
-    const categories = await Category.find(filter).sort({ displayOrder: 1 });
+    const categories = await Category.findAll(options);
+    
+    // تصفية الفئات المميزة إذا تم تحديدها
+    let filteredCategories = categories;
+    if (featured !== undefined) {
+      filteredCategories = categories.filter(cat => 
+        featured === 'true' ? cat.is_featured : !cat.is_featured
+      );
+    }
     
     res.status(200).json({
       success: true,
-      count: categories.length,
-      data: categories
+      count: filteredCategories.length,
+      data: filteredCategories
     });
   } catch (error) {
     console.error('خطأ في الحصول على الفئات:', error);

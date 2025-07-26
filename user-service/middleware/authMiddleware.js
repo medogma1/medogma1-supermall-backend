@@ -1,6 +1,10 @@
-// user-service/middleware/authMiddleware.js
-const jwt = require('jsonwebtoken');
-const { promisify } = require('util');
+/**
+ * وسيط المصادقة لخدمة المستخدمين
+ * يستخدم المكتبة المشتركة للمصادقة مع إضافة التحقق من حالة المستخدم وتغيير كلمة المرور
+ */
+const { authenticate: sharedAuthenticate } = require('../../utils/auth/authMiddleware');
+const { createError, ERROR_TYPES, handleError } = require('../../utils/auth/errorHandler');
+const { errorResponse } = require('../../utils/common/responseHandler');
 const User = require('../models/User');
 
 /**
@@ -9,61 +13,35 @@ const User = require('../models/User');
  */
 exports.authenticate = async (req, res, next) => {
   try {
-    let token;
+    // استخدام وسيط المصادقة المشترك للتحقق من صحة التوكن
+    await sharedAuthenticate(req, res, async () => {
+      // التحقق من وجود المستخدم
+      const currentUser = await User.findById(req.user.id);
+      if (!currentUser) {
+        return errorResponse(res, 401, 'المستخدم المالك لهذا الرمز لم يعد موجودًا.');
+      }
+      
+      // التحقق مما إذا تم تغيير كلمة المرور بعد إصدار الرمز المميز
+      if (currentUser.changedPasswordAfter(req.user.iat)) {
+        return errorResponse(res, 401, 'تم تغيير كلمة المرور مؤخرًا. يرجى تسجيل الدخول مرة أخرى.');
+      }
     
-    // الحصول على الرمز المميز من الرأس أو ملفات تعريف الارتباط
-    if (
-      req.headers.authorization &&
-      req.headers.authorization.startsWith('Bearer')
-    ) {
-      token = req.headers.authorization.split(' ')[1];
-    } else if (req.cookies.jwt) {
-      token = req.cookies.jwt;
-    }
-    
-    if (!token) {
-      return res.status(401).json({
-        status: 'fail',
-        message: 'أنت غير مسجل الدخول. يرجى تسجيل الدخول للوصول.'
-      });
-    }
-    
-    // التحقق من الرمز المميز
-    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
-    
-    // التحقق من وجود المستخدم
-    const currentUser = await User.findById(decoded.id);
-    if (!currentUser) {
-      return res.status(401).json({
-        status: 'fail',
-        message: 'المستخدم المالك لهذا الرمز لم يعد موجودًا.'
-      });
-    }
-    
-    // التحقق مما إذا تم تغيير كلمة المرور بعد إصدار الرمز المميز
-    if (currentUser.changedPasswordAfter(decoded.iat)) {
-      return res.status(401).json({
-        status: 'fail',
-        message: 'تم تغيير كلمة المرور مؤخرًا. يرجى تسجيل الدخول مرة أخرى.'
-      });
-    }
-    
-    // التحقق من حالة المستخدم
-    if (!currentUser.isActive) {
-      return res.status(401).json({
-        status: 'fail',
-        message: 'تم تعطيل حسابك. يرجى الاتصال بالدعم.'
-      });
-    }
-    
-    // إضافة المستخدم إلى الطلب
-    req.user = currentUser;
-    next();
-  } catch (err) {
-    res.status(401).json({
-      status: 'fail',
-      message: 'غير مصرح به. يرجى تسجيل الدخول مرة أخرى.'
+      // التحقق من حالة المستخدم
+      if (!currentUser.isActive) {
+        return errorResponse(res, 401, 'تم تعطيل حسابك. يرجى الاتصال بالدعم.');
+      }
+      
+      // إضافة المستخدم إلى الطلب
+      req.user = currentUser;
+      next();
     });
+  } catch (err) {
+    const authError = createError(
+      err.message || 'غير مصرح به. يرجى تسجيل الدخول مرة أخرى.',
+      ERROR_TYPES.AUTHENTICATION,
+      401
+    );
+    handleError(authError, res, 'user-service');
   }
 };
 
@@ -74,17 +52,11 @@ exports.authenticate = async (req, res, next) => {
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        status: 'fail',
-        message: 'أنت غير مسجل الدخول. يرجى تسجيل الدخول أولاً.'
-      });
+      return errorResponse(res, 401, 'أنت غير مسجل الدخول. يرجى تسجيل الدخول أولاً.');
     }
     
     if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        status: 'fail',
-        message: 'ليس لديك إذن للقيام بهذا الإجراء'
-      });
+      return errorResponse(res, 403, 'ليس لديك إذن للقيام بهذا الإجراء');
     }
     
     next();
@@ -99,10 +71,7 @@ exports.checkOwnership = (getOwnerId) => {
   return async (req, res, next) => {
     try {
       if (!req.user) {
-        return res.status(401).json({
-          status: 'fail',
-          message: 'أنت غير مسجل الدخول. يرجى تسجيل الدخول أولاً.'
-        });
+        return errorResponse(res, 401, 'أنت غير مسجل الدخول. يرجى تسجيل الدخول أولاً.');
       }
       
       // السماح للمسؤولين بالوصول إلى جميع الموارد
@@ -114,18 +83,17 @@ exports.checkOwnership = (getOwnerId) => {
       
       // التحقق من الملكية
       if (ownerId && ownerId.toString() !== req.user._id.toString()) {
-        return res.status(403).json({
-          status: 'fail',
-          message: 'ليس لديك إذن للوصول إلى هذا المورد'
-        });
+        return errorResponse(res, 403, 'ليس لديك إذن للوصول إلى هذا المورد');
       }
       
       next();
     } catch (err) {
-      res.status(500).json({
-        status: 'error',
-        message: 'حدث خطأ أثناء التحقق من الملكية'
-      });
+      const authError = createError(
+        err.message || 'حدث خطأ أثناء التحقق من الملكية',
+        ERROR_TYPES.AUTHORIZATION,
+        403
+      );
+      handleError(authError, res, 'user-service');
     }
   };
 };
@@ -137,27 +105,32 @@ exports.checkOwnership = (getOwnerId) => {
 exports.isLoggedIn = async (req, res, next) => {
   try {
     if (req.cookies.jwt) {
-      // التحقق من الرمز المميز
-      const decoded = await promisify(jwt.verify)(
-        req.cookies.jwt,
-        process.env.JWT_SECRET
-      );
-      
-      // التحقق من وجود المستخدم
-      const currentUser = await User.findById(decoded.id);
-      if (!currentUser || !currentUser.isActive) {
+      // استخدام وسيط المصادقة المشترك للتحقق من صحة التوكن بدون إرجاع خطأ
+      try {
+        // التحقق من الرمز المميز باستخدام المكتبة المشتركة
+        const jwt = require('jsonwebtoken');
+        const { promisify } = require('util');
+        const decoded = await promisify(jwt.verify)(req.cookies.jwt, process.env.JWT_SECRET);
+        
+        // التحقق من وجود المستخدم
+        const currentUser = await User.findById(decoded.id);
+        if (!currentUser || !currentUser.isActive) {
+          return next();
+        }
+        
+        // التحقق من تغيير كلمة المرور
+        if (currentUser.changedPasswordAfter(decoded.iat)) {
+          return next();
+        }
+        
+        // هناك مستخدم مسجل الدخول
+        req.user = currentUser;
+        res.locals.user = currentUser;
+        return next();
+      } catch (error) {
+        // في حالة وجود خطأ في التوكن، نتجاهله ونستمر
         return next();
       }
-      
-      // التحقق من تغيير كلمة المرور
-      if (currentUser.changedPasswordAfter(decoded.iat)) {
-        return next();
-      }
-      
-      // هناك مستخدم مسجل الدخول
-      req.user = currentUser;
-      res.locals.user = currentUser;
-      return next();
     }
   } catch (err) {
     // لا يوجد مستخدم مسجل الدخول

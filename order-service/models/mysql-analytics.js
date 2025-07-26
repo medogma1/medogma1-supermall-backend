@@ -1,21 +1,6 @@
 // order-service/models/mysql-analytics.js
-const mysql = require('mysql2/promise');
+const { pool } = require('../config/database');
 require('dotenv').config();
-
-// إعدادات الاتصال بقاعدة البيانات MySQL الموحدة
-const dbConfig = {
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASSWORD || 'xx100100',
-  database: process.env.DB_NAME || 'supermall',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
-
-// إنشاء تجمع اتصالات
-const pool = mysql.createPool(dbConfig);
 
 /**
  * الحصول على تحليلات المبيعات
@@ -40,7 +25,7 @@ async function getSalesAnalytics(storeId, period, startDate, endDate) {
     const formattedEndDate = new Date(endDate).toISOString().split('T')[0];
     
     // الحصول على إجمالي الإيرادات وعدد الطلبات
-    const [revenueResult] = await pool.query(
+    const [revenueResult] = await pool.execute(
       `SELECT 
         SUM(total_amount) as totalRevenue, 
         COUNT(*) as totalOrders,
@@ -55,7 +40,7 @@ async function getSalesAnalytics(storeId, period, startDate, endDate) {
     const averageOrderValue = revenueResult[0].averageOrderValue || 0;
     
     // الحصول على الإيرادات حسب الفئة
-    const [categoryResult] = await pool.query(
+    const [categoryResult] = await pool.execute(
       `SELECT 
         c.name as category, 
         SUM(oi.price * oi.quantity) as revenue
@@ -74,7 +59,7 @@ async function getSalesAnalytics(storeId, period, startDate, endDate) {
     });
     
     // الحصول على الطلبات حسب الحالة
-    const [statusResult] = await pool.query(
+    const [statusResult] = await pool.execute(
       `SELECT 
         status, 
         COUNT(*) as count
@@ -90,7 +75,7 @@ async function getSalesAnalytics(storeId, period, startDate, endDate) {
     });
     
     // الحصول على المبيعات اليومية
-    const [dailySalesResult] = await pool.query(
+    const [dailySalesResult] = await pool.execute(
       `SELECT 
         DATE(created_at) as date, 
         SUM(total_amount) as revenue, 
@@ -146,7 +131,7 @@ async function getCustomerAnalytics(storeId, period, startDate, endDate) {
     const formattedEndDate = new Date(endDate).toISOString().split('T')[0];
     
     // الحصول على إجمالي العملاء
-    const [totalCustomersResult] = await pool.query(
+    const [totalCustomersResult] = await pool.execute(
       `SELECT COUNT(DISTINCT user_id) as totalCustomers
        FROM orders 
        WHERE store_id = ? AND created_at BETWEEN ? AND ?`,
@@ -156,7 +141,7 @@ async function getCustomerAnalytics(storeId, period, startDate, endDate) {
     const totalCustomers = totalCustomersResult[0].totalCustomers || 0;
     
     // الحصول على العملاء الجدد (الذين قاموا بطلبهم الأول خلال الفترة)
-    const [newCustomersResult] = await pool.query(
+    const [newCustomersResult] = await pool.execute(
       `SELECT COUNT(*) as newCustomers
        FROM (
          SELECT user_id, MIN(created_at) as first_order_date
@@ -171,7 +156,7 @@ async function getCustomerAnalytics(storeId, period, startDate, endDate) {
     const newCustomers = newCustomersResult[0].newCustomers || 0;
     
     // الحصول على العملاء المتكررين (الذين قاموا بأكثر من طلب)
-    const [repeatCustomersResult] = await pool.query(
+    const [repeatCustomersResult] = await pool.execute(
       `SELECT COUNT(*) as repeatCustomers
        FROM (
          SELECT user_id, COUNT(*) as order_count
@@ -189,7 +174,7 @@ async function getCustomerAnalytics(storeId, period, startDate, endDate) {
     const customerRetentionRate = totalCustomers > 0 ? (repeatCustomers / totalCustomers) * 100 : 0;
     
     // الحصول على العملاء حسب المنطقة
-    const [regionResult] = await pool.query(
+    const [regionResult] = await pool.execute(
       `SELECT 
         a.state as region, 
         COUNT(DISTINCT o.user_id) as count
@@ -206,7 +191,7 @@ async function getCustomerAnalytics(storeId, period, startDate, endDate) {
     });
     
     // الحصول على شرائح العملاء (مثال: حسب قيمة الطلب)
-    const [segmentsResult] = await pool.query(
+    const [segmentsResult] = await pool.execute(
       `SELECT 
         CASE 
           WHEN avg_order_value < 100 THEN 'منخفض القيمة'
@@ -272,7 +257,7 @@ async function getInventoryAnalytics(storeId) {
     }
     
     // الحصول على إجمالي المنتجات
-    const [totalProductsResult] = await pool.query(
+    const [totalProductsResult] = await pool.execute(
       `SELECT COUNT(*) as totalProducts
        FROM products 
        WHERE store_id = ?`,
@@ -282,7 +267,7 @@ async function getInventoryAnalytics(storeId) {
     const totalProducts = totalProductsResult[0].totalProducts || 0;
     
     // الحصول على إجمالي قيمة المخزون
-    const [stockValueResult] = await pool.query(
+    const [stockValueResult] = await pool.execute(
       `SELECT SUM(price * stock_quantity) as totalStockValue
        FROM products 
        WHERE store_id = ?`,
@@ -292,7 +277,7 @@ async function getInventoryAnalytics(storeId) {
     const totalStockValue = stockValueResult[0].totalStockValue || 0;
     
     // الحصول على المنتجات منخفضة المخزون
-    const [lowStockResult] = await pool.query(
+    const [lowStockResult] = await pool.execute(
       `SELECT COUNT(*) as lowStockProducts
        FROM products 
        WHERE store_id = ? AND stock_quantity <= low_stock_threshold`,
@@ -302,7 +287,7 @@ async function getInventoryAnalytics(storeId) {
     const lowStockProducts = lowStockResult[0].lowStockProducts || 0;
     
     // الحصول على المنتجات نافدة المخزون
-    const [outOfStockResult] = await pool.query(
+    const [outOfStockResult] = await pool.execute(
       `SELECT COUNT(*) as outOfStockProducts
        FROM products 
        WHERE store_id = ? AND stock_quantity = 0`,
@@ -312,7 +297,7 @@ async function getInventoryAnalytics(storeId) {
     const outOfStockProducts = outOfStockResult[0].outOfStockProducts || 0;
     
     // الحصول على المنتجات الأكثر مبيعًا
-    const [topSellingResult] = await pool.query(
+    const [topSellingResult] = await pool.execute(
       `SELECT 
         p.id, 
         p.name, 
@@ -368,7 +353,7 @@ async function getProductPerformance(storeId, startDate, endDate, limit = 20) {
     const formattedEndDate = new Date(endDate).toISOString().split('T')[0];
     
     // الحصول على أداء المنتجات
-    const [productPerformanceResult] = await pool.query(
+    const [productPerformanceResult] = await pool.execute(
       `SELECT 
         p.id as productId, 
         p.name as productName, 

@@ -1,0 +1,331 @@
+version: '3.8'
+
+services:
+  # خدمة قاعدة البيانات
+  mysql:
+    image: mysql:8.0
+    container_name: supermall-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+    networks:
+      - supermall-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # خدمة Redis للتخزين المؤقت
+  redis:
+    image: redis:6.2-alpine
+    container_name: supermall-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - supermall-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # بوابة API
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: supermall-api-gateway
+    restart: always
+    ports:
+      - "5001:5001"
+    environment:
+      - NODE_ENV=production
+      - PORT=5001
+      - AUTH_SERVICE_URL=http://auth-service:5000
+      - USER_SERVICE_URL=http://user-service:5002
+      - PRODUCT_SERVICE_URL=http://product-service:5003
+      - ORDER_SERVICE_URL=http://order-service:5004
+      - VENDOR_SERVICE_URL=http://vendor-service:5005
+      - ANALYTICS_SERVICE_URL=http://analytics-service:5010
+      - NOTIFICATION_SERVICE_URL=http://notification-service:5008
+      - SUPPORT_SERVICE_URL=http://support-service:5006
+      - CHAT_SERVICE_URL=http://chat-service:5007
+      - UPLOAD_SERVICE_URL=http://upload-service:5009
+    depends_on:
+      - auth-service
+    networks:
+      - supermall-network
+
+  # خدمة المصادقة
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: supermall-auth-service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRATION=${JWT_EXPIRATION}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - supermall-network
+
+  # خدمة المستخدمين
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    container_name: supermall-user-service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5002
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:5000
+    depends_on:
+      - mysql
+      - auth-service
+    networks:
+      - supermall-network
+
+  # خدمة المنتجات
+  product-service:
+    build:
+      context: ./product-service
+      dockerfile: Dockerfile
+    container_name: supermall-product-service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5003
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:5000
+      - UPLOAD_SERVICE_URL=http://upload-service:5010
+    depends_on:
+      - mysql
+      - auth-service
+    networks:
+      - supermall-network
+
+  # خدمة الطلبات
+  order-service:
+    build:
+      context: ./order-service
+      dockerfile: Dockerfile
+    container_name: supermall-order-service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5004
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:5000
+      - PRODUCT_SERVICE_URL=http://product-service:5003
+      - USER_SERVICE_URL=http://user-service:5002
+      - NOTIFICATION_SERVICE_URL=http://notification-service:5007
+    depends_on:
+      - mysql
+      - auth-service
+      - product-service
+      - user-service
+    networks:
+      - supermall-network
+
+  # خدمة البائعين
+  vendor-service:
+    build:
+      context: ./vendor-service
+      dockerfile: Dockerfile
+    container_name: supermall-vendor-service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5005
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:5000
+      - PRODUCT_SERVICE_URL=http://product-service:5003
+    depends_on:
+      - mysql
+      - auth-service
+    networks:
+      - supermall-network
+
+  # خدمة التحليلات
+  analytics-service:
+    build:
+      context: ./analytics-service
+      dockerfile: Dockerfile
+    container_name: supermall-analytics-service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5010
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:5000
+    depends_on:
+      - mysql
+      - auth-service
+    networks:
+      - supermall-network
+
+  # خدمة الإشعارات
+  notification-service:
+    build:
+      context: ./notification-service
+      dockerfile: Dockerfile
+    container_name: supermall-notification-service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5008
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:5000
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - EMAIL_FROM=${EMAIL_FROM}
+    depends_on:
+      - mysql
+      - auth-service
+    networks:
+      - supermall-network
+
+  # خدمة الدعم
+  support-service:
+    build:
+      context: ./support-service
+      dockerfile: Dockerfile
+    container_name: supermall-support-service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5008
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:5000
+      - USER_SERVICE_URL=http://user-service:5002
+      - NOTIFICATION_SERVICE_URL=http://notification-service:5007
+    depends_on:
+      - mysql
+      - auth-service
+      - user-service
+    networks:
+      - supermall-network
+
+  # خدمة الدردشة
+  chat-service:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile
+    container_name: supermall-chat-service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5007
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:5000
+      - USER_SERVICE_URL=http://user-service:5002
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - mysql
+      - redis
+      - auth-service
+      - user-service
+    networks:
+      - supermall-network
+
+  # خدمة الرفع
+  upload-service:
+    build:
+      context: ./upload-service
+      dockerfile: Dockerfile
+    container_name: supermall-upload-service
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=5010
+      - JWT_SECRET=${JWT_SECRET}
+      - AUTH_SERVICE_URL=http://auth-service:5000
+      - UPLOAD_DIR=/app/uploads
+      - MAX_FILE_SIZE=5242880
+    volumes:
+      - upload-data:/app/uploads
+    depends_on:
+      - auth-service
+    networks:
+      - supermall-network
+
+networks:
+  supermall-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  redis-data:
+  upload-data:
