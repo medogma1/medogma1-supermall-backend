@@ -722,6 +722,38 @@ async function getUserStats() {
   }
 }
 
+// دالة لتحديث كلمة مرور المستخدم
+async function updateUserPassword(userId, newPassword) {
+  try {
+    // تشفير كلمة المرور الجديدة
+    const hashedPassword = await hashPassword(newPassword);
+    
+    // تحديث كلمة المرور في قاعدة البيانات
+    const [result] = await pool.execute(
+      'UPDATE users SET password = ?, password_changed_at = NOW() WHERE id = ?',
+      [hashedPassword, userId]
+    );
+    
+    if (result.affectedRows === 0) {
+      return {
+        success: false,
+        error: 'المستخدم غير موجود'
+      };
+    }
+    
+    return {
+      success: true,
+      message: 'تم تحديث كلمة المرور بنجاح'
+    };
+  } catch (error) {
+    console.error('Error updating user password:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
 // تصدير الدوال
 module.exports = {
   pool,
@@ -737,5 +769,6 @@ module.exports = {
   generateAuthToken,
   comparePassword,
   getAllUsers,
-  getUserStats
+  getUserStats,
+  updateUserPassword
 };

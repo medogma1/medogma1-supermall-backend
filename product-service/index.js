@@ -10,6 +10,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
+const bannerRoutes = require('./routes/bannerRoutes');
 
 const app = express();
 
@@ -95,8 +96,14 @@ app.use('/categories', categoryRoutes);
 // مسارات المفضلات
 app.use('/favorites', favoriteRoutes);
 
+// مسارات البنرات
+app.use('/banners', bannerRoutes);
+
 // مسارات الإدارة للمنتجات
 app.use('/admin/products', productRoutes);
+
+// مسارات الإدارة للبنرات
+app.use('/admin/banners', bannerRoutes);
 
 // معالجة الأخطاء
 app.use((err, req, res, next) => {

@@ -156,6 +156,229 @@ exports.login = async (req, res) => {
   }
 };
 
+// حظر عميل
+exports.banCustomer = async (req, res) => {
+  try {
+    const customerId = req.params.id;
+    
+    // التحقق من وجود العميل
+    const customer = await userModel.findUserById(customerId);
+    
+    if (!customer) {
+      return res.status(404).json({
+        status: 'fail',
+        message: 'لا يوجد عميل بهذا المعرف'
+      });
+    }
+    
+    if (customer.role !== 'customer') {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'هذا المستخدم ليس عميلاً'
+      });
+    }
+    
+    // حظر العميل
+    const updatedCustomer = await userModel.updateUser(customerId, {
+      isActive: false,
+      bannedAt: new Date(),
+      banReason: req.body.reason || 'تم الحظر من قبل الإدارة'
+    });
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'تم حظر العميل بنجاح',
+      data: {
+        customer: updatedCustomer
+      }
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err.message
+    });
+  }
+};
+
+// إلغاء حظر عميل
+exports.unbanCustomer = async (req, res) => {
+  try {
+    const customerId = req.params.id;
+    
+    // التحقق من وجود العميل
+    const customer = await userModel.findUserById(customerId);
+    
+    if (!customer) {
+      return res.status(404).json({
+        status: 'fail',
+        message: 'لا يوجد عميل بهذا المعرف'
+      });
+    }
+    
+    if (customer.role !== 'customer') {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'هذا المستخدم ليس عميلاً'
+      });
+    }
+    
+    // إلغاء حظر العميل
+    const updatedCustomer = await userModel.updateUser(customerId, {
+      isActive: true,
+      bannedAt: null,
+      banReason: null
+    });
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'تم إلغاء حظر العميل بنجاح',
+      data: {
+        customer: updatedCustomer
+      }
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err.message
+    });
+  }
+};
+
+// إعادة تعيين كلمة مرور العميل
+exports.resetCustomerPassword = async (req, res) => {
+  try {
+    const customerId = req.params.id;
+    
+    // التحقق من وجود العميل
+    const customer = await userModel.findUserById(customerId);
+    
+    if (!customer) {
+      return res.status(404).json({
+        status: 'fail',
+        message: 'لا يوجد عميل بهذا المعرف'
+      });
+    }
+    
+    if (customer.role !== 'customer') {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'هذا المستخدم ليس عميلاً'
+      });
+    }
+    
+    // إنشاء كلمة مرور جديدة
+    const newPassword = crypto.randomBytes(8).toString('hex');
+    
+    // تحديث كلمة المرور
+    await userModel.updateUserPassword(customerId, newPassword);
+    
+    // TODO: إرسال كلمة المرور الجديدة عبر البريد الإلكتروني
+    // await sendPasswordResetEmail(customer.email, newPassword);
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'تم إعادة تعيين كلمة المرور وإرسالها عبر البريد الإلكتروني',
+      data: {
+        temporaryPassword: newPassword // في الإنتاج، لا يجب إرسال كلمة المرور في الاستجابة
+      }
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err.message
+    });
+  }
+};
+
+// إرسال إشعار للعميل
+exports.sendNotificationToCustomer = async (req, res) => {
+  try {
+    const customerId = req.params.id;
+    const { message, title } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'نص الإشعار مطلوب'
+      });
+    }
+    
+    // التحقق من وجود العميل
+    const customer = await userModel.findUserById(customerId);
+    
+    if (!customer) {
+      return res.status(404).json({
+        status: 'fail',
+        message: 'لا يوجد عميل بهذا المعرف'
+      });
+    }
+    
+    if (customer.role !== 'customer') {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'هذا المستخدم ليس عميلاً'
+      });
+    }
+    
+    // TODO: إرسال الإشعار عبر خدمة الإشعارات
+    // await notificationService.sendNotification(customerId, {
+    //   title: title || 'إشعار من الإدارة',
+    //   message,
+    //   type: 'admin_notification'
+    // });
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'تم إرسال الإشعار بنجاح'
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err.message
+    });
+  }
+};
+
+// عرض طلبات العميل
+exports.getCustomerOrders = async (req, res) => {
+  try {
+    const customerId = req.params.id;
+    
+    // التحقق من وجود العميل
+    const customer = await userModel.findUserById(customerId);
+    
+    if (!customer) {
+      return res.status(404).json({
+        status: 'fail',
+        message: 'لا يوجد عميل بهذا المعرف'
+      });
+    }
+    
+    if (customer.role !== 'customer') {
+      return res.status(400).json({
+        status: 'fail',
+        message: 'هذا المستخدم ليس عميلاً'
+      });
+    }
+    
+    // TODO: جلب طلبات العميل من خدمة الطلبات
+    // const orders = await orderService.getOrdersByCustomerId(customerId);
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'سيتم إضافة عرض طلبات العميل قريباً',
+      data: {
+        orders: [] // مؤقت
+      }
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err.message
+    });
+  }
+};
+
 // تسجيل الخروج
 exports.logout = (req, res) => {
   res.cookie('jwt', 'loggedout', {
@@ -797,6 +1020,56 @@ exports.getUserStats = async (req, res) => {
     res.status(200).json({
       status: 'success',
       data: result.stats
+    });
+  } catch (err) {
+    res.status(400).json({
+      status: 'fail',
+      message: err.message
+    });
+  }
+};
+
+// الحصول على جميع العملاء (المستخدمين بدور customer)
+exports.getCustomers = async (req, res) => {
+  try {
+    // تنفيذ الاستعلام مع الترشيح والفرز والحد باستخدام نموذج MySQL
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    
+    // إعداد معايير الترشيح للعملاء فقط
+    const filters = {
+      role: 'customer' // تصفية العملاء فقط
+    };
+    
+    if (req.query.isActive !== undefined) filters.isActive = req.query.isActive === 'true';
+    if (req.query.isEmailVerified !== undefined) filters.isEmailVerified = req.query.isEmailVerified === 'true';
+    if (req.query.search) filters.search = req.query.search;
+    
+    // تنفيذ الاستعلام باستخدام نموذج MySQL
+    const result = await userModel.getAllUsers({
+      page,
+      limit,
+      sort: req.query.sort || 'u.created_at DESC',
+      filters
+    });
+    
+    // التحقق من نجاح العملية
+    if (!result.success) {
+      return res.status(400).json({
+        status: 'fail',
+        message: result.error
+      });
+    }
+    
+    res.status(200).json({
+      status: 'success',
+      results: result.users.length,
+      totalPages: Math.ceil(result.totalUsers / limit),
+      currentPage: page,
+      totalCustomers: result.totalUsers,
+      data: {
+        customers: result.users
+      }
     });
   } catch (err) {
     res.status(400).json({

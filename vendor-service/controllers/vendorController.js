@@ -1317,3 +1317,210 @@ exports.verifyVendor = async (req, res) => {
     });
   }
 };
+
+// التحقق من متجر → PATCH /stores/:id/verify
+exports.verifyStore = async (req, res) => {
+  try {
+    const storeId = req.params.id;
+    const { isVerified = true, verificationStatus = 'verified' } = req.body;
+    
+    console.log(`🔍 [Store Verify] Processing store verification: ${storeId}`);
+    
+    // التحقق من وجود المتجر
+    const vendor = await Vendor.findById(storeId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'المتجر غير موجود'
+      });
+    }
+    
+    // تحديث حالة التحقق
+    const updatedVendor = await Vendor.update(storeId, {
+      verificationStatus: verificationStatus,
+      isVerified: isVerified ? 1 : 0,
+      verified_at: isVerified ? new Date() : null
+    });
+    
+    console.log(`✅ تم التحقق من المتجر: ${storeId}`);
+    
+    res.status(200).json({
+      success: true,
+      message: 'تم التحقق من المتجر بنجاح',
+      data: updatedVendor
+    });
+  } catch (error) {
+    console.error('فشل التحقق من المتجر:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل التحقق من المتجر',
+      error: error.message
+    });
+  }
+};
+
+// اعتماد متجر → PATCH /stores/:id/approve
+exports.approveStore = async (req, res) => {
+  try {
+    const storeId = req.params.id;
+    const { isApproved = true, status = 'approved' } = req.body;
+    
+    console.log(`🔍 [Store Approve] Processing store approval: ${storeId}`);
+    
+    // التحقق من وجود المتجر
+    const vendor = await Vendor.findById(storeId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'المتجر غير موجود'
+      });
+    }
+    
+    // تحديث حالة الاعتماد
+    const updatedVendor = await Vendor.update(storeId, {
+      status: status,
+      isApproved: isApproved ? 1 : 0,
+      approvedAt: isApproved ? new Date() : null
+    });
+    
+    console.log(`✅ تم اعتماد المتجر: ${storeId}`);
+    
+    res.status(200).json({
+      success: true,
+      message: 'تم اعتماد المتجر بنجاح',
+      data: updatedVendor
+    });
+  } catch (error) {
+    console.error('فشل اعتماد المتجر:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل اعتماد المتجر',
+      error: error.message
+    });
+  }
+};
+
+// توثيق متجر → PATCH /stores/:id/certify
+exports.certifyStore = async (req, res) => {
+  try {
+    const storeId = req.params.id;
+    const { isCertified = true, certificationStatus = 'certified' } = req.body;
+    
+    console.log(`🔍 [Store Certify] Processing store certification: ${storeId}`);
+    
+    // التحقق من وجود المتجر
+    const vendor = await Vendor.findById(storeId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'المتجر غير موجود'
+      });
+    }
+    
+    // تحديث حالة التوثيق
+    const updatedVendor = await Vendor.update(storeId, {
+      certificationStatus: certificationStatus,
+      isCertified: isCertified ? 1 : 0,
+      certifiedAt: isCertified ? new Date() : null
+    });
+    
+    console.log(`✅ تم توثيق المتجر: ${storeId}`);
+    
+    res.status(200).json({
+      success: true,
+      message: 'تم توثيق المتجر بنجاح',
+      data: updatedVendor
+    });
+  } catch (error) {
+    console.error('فشل توثيق المتجر:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل توثيق المتجر',
+      error: error.message
+    });
+  }
+};
+
+// حظر/إلغاء حظر تاجر → PATCH /vendors/:id/ban
+exports.toggleVendorBan = async (req, res) => {
+  try {
+    const vendorId = req.params.id;
+    const { isBanned } = req.body;
+    
+    console.log(`🔍 [Vendor Ban] Processing vendor ban toggle: ${vendorId}, isBanned: ${isBanned}`);
+    
+    // التحقق من وجود البائع
+    const vendor = await Vendor.findById(vendorId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'البائع غير موجود'
+      });
+    }
+    
+    // تحديث حالة الحظر
+    const updatedVendor = await Vendor.update(vendorId, {
+      isBanned: isBanned ? 1 : 0,
+      bannedAt: isBanned ? new Date() : null,
+      banReason: isBanned ? req.body.banReason || 'تم الحظر من قبل الإدارة' : null
+    });
+    
+    const action = isBanned ? 'حظر' : 'إلغاء حظر';
+    console.log(`✅ تم ${action} البائع: ${vendorId}`);
+    
+    res.status(200).json({
+      success: true,
+      message: `تم ${action} البائع بنجاح`,
+      data: updatedVendor
+    });
+  } catch (error) {
+    console.error('فشل تغيير حالة حظر البائع:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل تغيير حالة حظر البائع',
+      error: error.message
+    });
+  }
+};
+
+// حذف متجر → DELETE /stores/:id
+exports.deleteStore = async (req, res) => {
+  try {
+    const storeId = req.params.id;
+    
+    console.log(`🔍 [Store Delete] Processing store deletion: ${storeId}`);
+    
+    // التحقق من وجود المتجر
+    const vendor = await Vendor.findById(storeId);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: 'المتجر غير موجود'
+      });
+    }
+    
+    // حذف المتجر
+    const deleted = await Vendor.delete(storeId);
+    
+    if (deleted) {
+      console.log(`✅ تم حذف المتجر: ${storeId}`);
+      
+      res.status(200).json({
+        success: true,
+        message: 'تم حذف المتجر بنجاح'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'فشل حذف المتجر'
+      });
+    }
+  } catch (error) {
+    console.error('فشل حذف المتجر:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل حذف المتجر',
+      error: error.message
+    });
+  }
+};

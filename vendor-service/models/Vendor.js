@@ -104,7 +104,10 @@ class Vendor {
       'working_hours', 'verification_status', 'verification_documents',
       'verification_date', 'is_featured', 'is_active', 'rating', 'review_count',
       'commission_rate', 'balance', 'total_sales', 'total_orders',
-      'created_at', 'updated_at', 'national_id'
+      'created_at', 'updated_at', 'national_id',
+      // حقول إدارة المتاجر الجديدة
+      'status', 'is_approved', 'approved_at', 'certification_status', 
+      'is_certified', 'certified_at', 'is_banned', 'banned_at', 'ban_reason'
     ];
   }
   
@@ -821,11 +824,12 @@ class Vendor {
           country,
           governorate,
           is_active,
+          isVerified,
           rating,
           review_count,
           created_at
         FROM vendors 
-        WHERE is_active = true AND store_settings_completed = true
+        WHERE is_active = true AND store_settings_completed = true AND isVerified = 1
         ORDER BY rating DESC, created_at DESC
       `);
       return rows.map(row => snakeToCamel(row));

@@ -27,6 +27,13 @@ router.post('/verify', roleMiddleware.requireAdmin, vendorController.verifyVendo
 router.post('/:id/verify', roleMiddleware.requireAdmin, vendorController.verifyVendor); // التحقق من البائع
 router.get('/analytics', roleMiddleware.requireAdmin, vendorController.getVendorsAnalytics); // إحصائيات البائعين
 
+// Routes إدارة المتاجر (خاصة بالمدير فقط)
+router.patch('/:id/ban', roleMiddleware.requireAdmin, vendorController.toggleVendorBan); // حظر/إلغاء حظر تاجر
+router.patch('/:id/approve', roleMiddleware.requireAdmin, vendorController.approveStore); // اعتماد متجر
+router.patch('/:id/verify', roleMiddleware.requireAdmin, vendorController.verifyStore); // التحقق من متجر
+router.patch('/:id/certify', roleMiddleware.requireAdmin, vendorController.certifyStore); // توثيق متجر
+router.delete('/:id', roleMiddleware.requireAdmin, vendorController.deleteStore); // حذف متجر
+
 // Routes خاصة بالبائع أو المدير
 router.get('/:id', roleMiddleware.requireVendorOwnershipOrAdmin, vendorController.getVendorById); // بيانات بائع محدد
 router.put('/:id', roleMiddleware.requireVendorOwnershipOrAdmin, vendorController.updateVendor); // تحديث بيانات البائع

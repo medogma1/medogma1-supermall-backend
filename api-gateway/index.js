@@ -715,6 +715,40 @@ app.use(
   })
 );
 
+// Admin dashboard route - maps to analytics service
+app.use(
+  '/admin/dashboard',
+  authenticate, // Apply authentication to all admin routes
+  restrictTo('admin'), // Restrict access to admins only
+  createProxyMiddleware({
+    target: config.getServiceUrl('analytics'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/admin/dashboard': '/analytics' // Map /admin/dashboard to /analytics in analytics-service
+    },
+    timeout: 60000,
+    proxyTimeout: 60000,
+    followRedirects: true,
+    agent: new http.Agent({
+      keepAlive: true,
+      maxSockets: 100,
+      keepAliveMsecs: 60000,
+      timeout: 60000,
+    }),
+    onError: (err, req, res) => {
+      console.error('❌ خطأ في وكيل Admin Dashboard API Gateway:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          status: 'error',
+          message: 'حدث خطأ في الاتصال بخدمة لوحة التحكم الإدارية',
+          error: err.message
+        });
+      }
+    }
+  })
+);
+
 // Public upload endpoint (no authentication required)
 app.use(
   '/public/upload',
@@ -913,6 +947,108 @@ app.use(
         res.status(500).json({
           status: 'error',
           message: 'حدث خطأ في الاتصال بخدمة إدارة البائعين',
+          error: err.message
+        });
+      }
+    }
+  })
+);
+
+// Customer admin routes - require authentication and admin role
+app.use(
+  '/admin/customers',
+  authenticate, // Apply authentication to all admin routes
+  restrictTo('admin'), // Restrict access to admins only
+  createProxyMiddleware({
+    target: config.getServiceUrl('user'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/admin/customers': '/customers' // Map /admin/customers to /customers in user-service
+    },
+    timeout: 60000,
+    proxyTimeout: 60000,
+    followRedirects: true,
+    agent: new http.Agent({
+      keepAlive: true,
+      maxSockets: 100,
+      keepAliveMsecs: 60000,
+      timeout: 60000,
+    }),
+    onError: (err, req, res) => {
+      console.error('❌ خطأ في وكيل Customer Admin API Gateway:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          status: 'error',
+          message: 'حدث خطأ في الاتصال بخدمة إدارة العملاء',
+          error: err.message
+        });
+      }
+    }
+  })
+);
+
+// Banner admin routes - require authentication and admin role
+app.use(
+  '/admin/banners',
+  authenticate, // Apply authentication to all admin routes
+  restrictTo('admin'), // Restrict access to admins only
+  createProxyMiddleware({
+    target: config.getServiceUrl('product'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/admin/banners': '/admin/banners' // Keep admin path for product-service
+    },
+    timeout: 60000,
+    proxyTimeout: 60000,
+    followRedirects: true,
+    agent: new http.Agent({
+      keepAlive: true,
+      maxSockets: 100,
+      keepAliveMsecs: 60000,
+      timeout: 60000,
+    }),
+    onError: (err, req, res) => {
+      console.error('❌ خطأ في وكيل Banner Admin API Gateway:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          status: 'error',
+          message: 'حدث خطأ في الاتصال بخدمة إدارة البنرات',
+          error: err.message
+        });
+      }
+    }
+  })
+);
+
+// Settings admin routes - require authentication and admin role
+app.use(
+  '/admin/settings',
+  authenticate, // Apply authentication to all admin routes
+  restrictTo('admin'), // Restrict access to admins only
+  createProxyMiddleware({
+    target: config.getServiceUrl('user'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/admin/settings': '/admin/settings' // Keep admin path for user-service
+    },
+    timeout: 60000,
+    proxyTimeout: 60000,
+    followRedirects: true,
+    agent: new http.Agent({
+      keepAlive: true,
+      maxSockets: 100,
+      keepAliveMsecs: 60000,
+      timeout: 60000,
+    }),
+    onError: (err, req, res) => {
+      console.error('❌ خطأ في وكيل Settings Admin API Gateway:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          status: 'error',
+          message: 'حدث خطأ في الاتصال بخدمة إعدادات النظام',
           error: err.message
         });
       }
