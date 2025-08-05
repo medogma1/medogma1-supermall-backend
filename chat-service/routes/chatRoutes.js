@@ -10,6 +10,7 @@ router.use(authMiddleware);
 router.post('/conversations', chatController.createConversation);
 router.post('/chatrooms', chatController.createChatRoom);
 router.get('/conversations/user', chatController.getUserChatRooms);
+router.get('/conversations/admin', chatController.getAllConversationsForAdmin); // مسار جديد للمدير
 router.post('/conversations/close/:conversationId', chatController.closeChatRoom);
 
 // مسارات الرسائل

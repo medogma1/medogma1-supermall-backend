@@ -11,6 +11,7 @@ const searchRoutes = require('./routes/searchRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
 const bannerRoutes = require('./routes/bannerRoutes');
+const offerRoutes = require('./routes/offerRoutes');
 
 const app = express();
 
@@ -48,6 +49,12 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
+
+// Set UTF-8 encoding for all responses
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
 
 // JSON parsing with error handling
 app.use(express.json({ limit: '10mb' }));
@@ -99,8 +106,15 @@ app.use('/favorites', favoriteRoutes);
 // مسارات البنرات
 app.use('/banners', bannerRoutes);
 
+// مسارات العروض
+app.use('/offers', offerRoutes);
+app.use('/admin/offers', offerRoutes);
+
 // مسارات الإدارة للمنتجات
 app.use('/admin/products', productRoutes);
+
+// مسار المنتجات المميزة للإدارة
+app.use('/admin/featured-products', productRoutes);
 
 // مسارات الإدارة للبنرات
 app.use('/admin/banners', bannerRoutes);

@@ -31,7 +31,7 @@ exports.authenticate = async (req, res, next) => {
     }
     
     // Verify token
-    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET || 'supermall_secret_key_2024');
     
     // Set user in request
     req.user = decoded;

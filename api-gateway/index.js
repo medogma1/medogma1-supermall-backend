@@ -202,6 +202,41 @@ console.log('Notification:', config.getServiceUrl('notification'));
 console.log('Upload:', config.getServiceUrl('upload'));
 console.log('Analytics:', config.getServiceUrl('analytics'));
 
+// Add /api/v1/auth route for API compatibility (must come before /auth)
+app.use(
+  '/api/v1/auth',
+  createProxyMiddleware({
+    target: config.getServiceUrl('auth'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/api/v1/auth': '/auth'
+    },
+    // إضافة خيارات متقدمة للتعامل مع مشكلات الاتصال
+    timeout: 60000, // زيادة مهلة الاتصال إلى 60 ثانية
+    proxyTimeout: 60000, // زيادة مهلة الوكيل إلى 60 ثانية
+    followRedirects: true, // متابعة إعادة التوجيه
+    // تكوين وكيل HTTP مخصص
+    agent: new http.Agent({
+      keepAlive: true, // الحفاظ على الاتصال مفتوحًا
+      maxSockets: 100, // زيادة عدد المقابس المتاحة
+      keepAliveMsecs: 60000, // مدة الحفاظ على الاتصال (60 ثانية)
+      timeout: 60000, // مهلة المقبس
+    }),
+    // معالجة الأخطاء
+    onError: (err, req, res) => {
+      console.error('❌ خطأ في وكيل API Gateway:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          status: 'error',
+          message: 'حدث خطأ في الاتصال بالخدمة',
+          error: err.message
+        });
+      }
+    }
+  })
+);
+
 // Add /api/auth route for API compatibility (must come before /auth)
 app.use(
   '/api/auth',
@@ -559,6 +594,48 @@ app.use(
   })
 );
 
+// Add categories routes
+app.use(
+  '/categories',
+  (req, res, next) => {
+    // Allow public access for GET requests (reading categories)
+    if (req.method === 'GET' && !req.originalUrl.includes('/admin')) {
+      return next();
+    }
+    // Apply authentication to other requests
+    authenticate(req, res, next);
+  },
+  createProxyMiddleware({
+    target: config.getServiceUrl('product'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/categories': '/categories'
+    }
+  })
+);
+
+// Add API v1 categories routes
+app.use(
+  '/api/v1/categories',
+  (req, res, next) => {
+    // Allow public access for GET requests (reading categories)
+    if (req.method === 'GET' && !req.originalUrl.includes('/admin')) {
+      return next();
+    }
+    // Apply authentication to other requests
+    authenticate(req, res, next);
+  },
+  createProxyMiddleware({
+    target: config.getServiceUrl('product'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/api/v1/categories': '/categories'
+    }
+  })
+);
+
 /* ============ 4)  User Service (5002) =========== */
 app.use(
   '/users',
@@ -597,6 +674,20 @@ app.use(
   })
 );
 
+// Add API v1 orders routes
+app.use(
+  '/api/v1/orders',
+  authenticate, // Apply authentication to all order routes
+  createProxyMiddleware({
+    target: config.getServiceUrl('order'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/api/v1/orders': '/orders'
+    }
+  })
+);
+
 /* ============ 5.1)  Cart Service (5004) ============ */
 app.use(
   '/cart',
@@ -621,6 +712,56 @@ app.use(
     logLevel: 'debug',
     pathRewrite: {
       '^/chat': '/chat'
+    }
+  })
+);
+
+// Chat Service - Conversations API (v1)
+app.use(
+  '/api/v1/conversations',
+  authenticate,
+  createProxyMiddleware({
+    target: config.getServiceUrl('chat'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/api/v1/conversations': '/api/chat/conversations'
+    }
+  })
+);
+
+// Chat Service - Messages API (v1)
+app.use(
+  '/api/v1/messages',
+  authenticate,
+  createProxyMiddleware({
+    target: config.getServiceUrl('chat'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/api/v1/messages': '/api/chat/messages'
+    }
+  })
+);
+
+// Chat Service - Admin API (للمدير فقط)
+app.use(
+  '/admin/chat',
+  authenticate,
+  restrictTo('admin'), // Restrict access to admins only
+  createProxyMiddleware({
+    target: config.getServiceUrl('chat'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/admin/chat': '/api/chat/conversations/admin'
+    },
+    onError: (err, req, res) => {
+      console.error('❌ خطأ في وكيل Admin Chat API Gateway:', err);
+      res.status(500).json({
+        message: 'حدث خطأ في الاتصال بخدمة الشات',
+        error: err.message
+      });
     }
   })
 );
@@ -853,6 +994,108 @@ app.use(
   })
 );
 
+// Offers admin routes - require authentication and admin role
+app.use(
+  '/admin/offers',
+  authenticate, // Apply authentication to all admin routes
+  restrictTo('admin'), // Restrict access to admins only
+  createProxyMiddleware({
+    target: config.getServiceUrl('product'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/admin/offers': '/admin/offers' // Keep admin path for product-service
+    },
+    timeout: 60000,
+    proxyTimeout: 60000,
+    followRedirects: true,
+    agent: new http.Agent({
+      keepAlive: true,
+      maxSockets: 100,
+      keepAliveMsecs: 60000,
+      timeout: 60000,
+    }),
+    onError: (err, req, res) => {
+      console.error('❌ خطأ في وكيل Offers Admin API Gateway:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          status: 'error',
+          message: 'حدث خطأ في الاتصال بخدمة إدارة العروض',
+          error: err.message
+        });
+      }
+    }
+  })
+);
+
+// Featured Products admin routes - require authentication and admin role
+app.use(
+  '/admin/featured-products',
+  authenticate, // Apply authentication to all admin routes
+  restrictTo('admin'), // Restrict access to admins only
+  createProxyMiddleware({
+    target: config.getServiceUrl('product'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/admin/featured-products': '/admin/featured-products' // Keep admin path for product-service
+    },
+    timeout: 60000,
+    proxyTimeout: 60000,
+    followRedirects: true,
+    agent: new http.Agent({
+      keepAlive: true,
+      maxSockets: 100,
+      keepAliveMsecs: 60000,
+      timeout: 60000,
+    }),
+    onError: (err, req, res) => {
+      console.error('❌ خطأ في وكيل Featured Products Admin API Gateway:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          status: 'error',
+          message: 'حدث خطأ في الاتصال بخدمة إدارة المنتجات المميزة',
+          error: err.message
+        });
+      }
+    }
+  })
+);
+
+// Featured Stores admin routes - require authentication and admin role
+app.use(
+  '/admin/featured-stores',
+  authenticate, // Apply authentication to all admin routes
+  restrictTo('admin'), // Restrict access to admins only
+  createProxyMiddleware({
+    target: config.getServiceUrl('vendor'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/admin/featured-stores': '/api/v1/vendors/admin/featured-stores' // Rewrite to vendor service path
+    },
+    timeout: 60000,
+    proxyTimeout: 60000,
+    followRedirects: true,
+    agent: new http.Agent({
+      keepAlive: true,
+      maxSockets: 100,
+      keepAliveMsecs: 60000,
+      timeout: 60000,
+    }),
+    onError: (err, req, res) => {
+      console.error('❌ خطأ في وكيل Featured Stores Admin API Gateway:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          status: 'error',
+          message: 'حدث خطأ في الاتصال بخدمة إدارة المتاجر المميزة',
+          error: err.message
+        });
+      }
+    }
+  })
+);
+
 // User admin routes - require authentication and admin role
 app.use(
   '/admin/users',
@@ -1015,6 +1258,38 @@ app.use(
         res.status(500).json({
           status: 'error',
           message: 'حدث خطأ في الاتصال بخدمة إدارة البنرات',
+          error: err.message
+        });
+      }
+    }
+  })
+);
+
+// Public banners routes - no authentication required
+app.use(
+  '/api/v1/banners',
+  createProxyMiddleware({
+    target: config.getServiceUrl('product'),
+    changeOrigin: true,
+    logLevel: 'debug',
+    pathRewrite: {
+      '^/api/v1/banners': '/banners/public' // Rewrite to product service public banners path
+    },
+    timeout: 60000,
+    proxyTimeout: 60000,
+    followRedirects: true,
+    agent: new http.Agent({
+      keepAlive: true,
+      maxSockets: 100,
+      keepAliveMsecs: 60000,
+      timeout: 60000,
+    }),
+    onError: (err, req, res) => {
+      console.error('❌ خطأ في وكيل Public Banners API Gateway:', err);
+      if (!res.headersSent) {
+        res.status(500).json({
+          status: 'error',
+          message: 'حدث خطأ في الاتصال بخدمة البنرات',
           error: err.message
         });
       }

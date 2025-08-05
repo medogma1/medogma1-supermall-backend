@@ -10,6 +10,7 @@ exports.createProduct = async (req, res) => {
       name, 
       description, 
       price, 
+      priceType,
       categoryId,
       imageUrl,
       vendorId,
@@ -22,20 +23,29 @@ exports.createProduct = async (req, res) => {
     } = req.body;
 
     // التحقق من البيانات الأساسية
-    if (!name || !description || !price || !categoryId || !imageUrl) {
+    if (!name || !description || !categoryId || !imageUrl) {
       return res.status(400).json({
         success: false,
-        message: 'جميع الحقول الأساسية مطلوبة (name, description, price, categoryId, imageUrl)',
+        message: 'جميع الحقول الأساسية مطلوبة (name, description, categoryId, imageUrl)',
         error: 'MISSING_REQUIRED_FIELDS'
       });
     }
 
-    // التحقق من صحة السعر
-    if (price <= 0) {
+    // التحقق من نوع السعر والسعر
+    const finalPriceType = priceType || 'fixed';
+    if (finalPriceType === 'fixed' && (!price || price <= 0)) {
       return res.status(400).json({
         success: false,
-        message: 'السعر يجب أن يكون أكبر من صفر',
+        message: 'السعر مطلوب ويجب أن يكون أكبر من صفر عند اختيار سعر ثابت',
         error: 'INVALID_PRICE'
+      });
+    }
+    
+    if (finalPriceType !== 'fixed' && finalPriceType !== 'contact') {
+      return res.status(400).json({
+        success: false,
+        message: 'نوع السعر يجب أن يكون "fixed" أو "contact"',
+        error: 'INVALID_PRICE_TYPE'
       });
     }
 
@@ -52,7 +62,8 @@ exports.createProduct = async (req, res) => {
     const productData = {
       name: name.trim(),
       description: description.trim(),
-      price: parseFloat(price),
+      price: finalPriceType === 'fixed' ? parseFloat(price) : null,
+      priceType: finalPriceType,
       categoryId: parseInt(categoryId),
       imageUrl: imageUrl.trim(),
       vendorId: parseInt(finalVendorId),
@@ -525,6 +536,80 @@ exports.getProductStats = async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: 'حدث خطأ أثناء جلب إحصائيات المنتجات', 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
+// جلب المنتجات المميزة
+exports.getFeaturedProducts = async (req, res) => {
+  try {
+    console.log('[Products] Getting featured products');
+    
+    const result = await Product.findAll({
+      page: 1,
+      limit: 20,
+      filters: {
+        isFeatured: true,
+        isActive: true
+      },
+      sortBy: 'rating',
+      sortOrder: 'desc'
+    });
+
+    const products = result.products || [];
+    
+    console.log(`[Products] Found ${products.length} featured products`);
+    
+    res.json({
+      success: true,
+      message: 'تم جلب المنتجات المميزة بنجاح',
+      data: products,
+      total: products.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Products] Error getting featured products:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'حدث خطأ أثناء جلب المنتجات المميزة', 
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+};
+
+// تحديث حالة المنتج المميز
+exports.updateFeaturedStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isFeatured } = req.body;
+    
+    console.log(`[Products] Updating featured status for product ${id} to ${isFeatured}`);
+    
+    const product = await Product.findById(id);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: 'المنتج غير موجود',
+        error: 'PRODUCT_NOT_FOUND'
+      });
+    }
+
+    const updatedProduct = await Product.update(id, { isFeatured: Boolean(isFeatured) });
+    
+    res.json({
+      success: true,
+      message: `تم ${isFeatured ? 'إضافة' : 'إزالة'} المنتج ${isFeatured ? 'إلى' : 'من'} المنتجات المميزة`,
+      data: updatedProduct,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('[Products] Error updating featured status:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'حدث خطأ أثناء تحديث حالة المنتج المميز', 
       error: error.message,
       timestamp: new Date().toISOString()
     });

@@ -84,6 +84,14 @@ const config = {
     bcryptRounds: 12,
     maxLoginAttempts: 5,
     lockoutTime: 15 * 60 * 1000 // 15 دقيقة
+  },
+
+  // إعدادات Cloudinary
+  cloudinary: {
+    cloudName: process.env.CLOUD_NAME || '',
+    apiKey: process.env.CLOUD_API_KEY || '',
+    apiSecret: process.env.CLOUD_API_SECRET || '',
+    url: process.env.CLOUDINARY_URL || ''
   }
 };
 

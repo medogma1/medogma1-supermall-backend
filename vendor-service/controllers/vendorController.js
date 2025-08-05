@@ -991,17 +991,29 @@ exports.uploadLogo = async (req, res) => {
     
     console.log('📤 Upload logo request for vendor:', id);
     console.log('📁 Request file:', req.file ? 'Present' : 'Missing');
+    console.log('📄 Request body:', req.body);
     
-    if (!req.file) {
-      console.log('❌ No file uploaded');
+    let logoUrl;
+    
+    // Check if this is a Cloudinary URL update (JSON data)
+    if (req.body.logoUrl && !req.file) {
+      console.log('✅ Cloudinary logo URL provided:', req.body.logoUrl);
+      logoUrl = req.body.logoUrl;
+    }
+    // Check if this is a file upload
+    else if (req.file) {
+      console.log('✅ File uploaded successfully:', req.file.filename);
+      logoUrl = `/uploads/${req.file.filename}`;
+    }
+    // No file or URL provided
+    else {
+      console.log('❌ No file uploaded or logo URL provided');
       return res.status(400).json({
         success: false,
-        message: 'لم يتم رفع أي ملف'
+        message: 'يجب رفع ملف أو توفير رابط الشعار'
       });
     }
 
-    console.log('✅ File uploaded successfully:', req.file.filename);
-    const logoUrl = `/uploads/${req.file.filename}`;
     await Vendor.updateLogo(id, logoUrl);
     
     console.log('✅ Logo URL updated in database:', logoUrl);
@@ -1520,6 +1532,110 @@ exports.deleteStore = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'فشل حذف المتجر',
+      error: error.message
+    });
+  }
+};
+
+// ==================== المتاجر المميزة ====================
+
+// جلب المتاجر المميزة
+exports.getFeaturedStores = async (req, res) => {
+  try {
+    console.log('🔍 [DEBUG] جلب المتاجر المميزة');
+    
+    const featuredStores = await Vendor.getFeaturedStores();
+    
+    res.status(200).json({
+      success: true,
+      message: 'تم جلب المتاجر المميزة بنجاح',
+      data: featuredStores
+    });
+  } catch (error) {
+    console.error('❌ خطأ في جلب المتاجر المميزة:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب المتاجر المميزة',
+      error: error.message
+    });
+  }
+};
+
+// إضافة متجر مميز
+exports.addFeaturedStore = async (req, res) => {
+  try {
+    const { storeId, priority } = req.body;
+    
+    console.log('🔍 [DEBUG] إضافة متجر مميز:', { storeId, priority });
+    
+    if (!storeId) {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف المتجر مطلوب'
+      });
+    }
+    
+    const result = await Vendor.addFeaturedStore(storeId, priority);
+    
+    res.status(201).json({
+      success: true,
+      message: 'تم إضافة المتجر إلى المتاجر المميزة بنجاح',
+      data: result
+    });
+  } catch (error) {
+    console.error('❌ خطأ في إضافة متجر مميز:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل إضافة المتجر إلى المتاجر المميزة',
+      error: error.message
+    });
+  }
+};
+
+// تحديث متجر مميز
+exports.updateFeaturedStore = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { priority } = req.body;
+    
+    console.log('🔍 [DEBUG] تحديث متجر مميز:', { id, priority });
+    
+    const result = await Vendor.updateFeaturedStore(id, { priority });
+    
+    res.status(200).json({
+      success: true,
+      message: 'تم تحديث المتجر المميز بنجاح',
+      data: result
+    });
+  } catch (error) {
+    console.error('❌ خطأ في تحديث متجر مميز:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل تحديث المتجر المميز',
+      error: error.message
+    });
+  }
+};
+
+// حذف متجر مميز
+exports.removeFeaturedStore = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    console.log('🔍 [DEBUG] حذف متجر مميز:', { id });
+    
+    const result = await Vendor.removeFeaturedStore(id);
+    
+    res.status(200).json({
+      success: true,
+      message: 'تم حذف المتجر من المتاجر المميزة بنجاح',
+      data: result
+    });
+  } catch (error) {
+    console.error('❌ خطأ في حذف متجر مميز:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل حذف المتجر من المتاجر المميزة',
       error: error.message
     });
   }

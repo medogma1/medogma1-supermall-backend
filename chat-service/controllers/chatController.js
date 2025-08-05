@@ -25,21 +25,22 @@ exports.createChatRoom = async (req, res) => {
 // دالة منفصلة لإنشاء المحادثات (متوافقة مع الاختبارات)
 exports.createConversation = async (req, res) => {
   try {
-    const { vendorId, receiverId } = req.body;
+    const { vendorId, receiverId, title, type } = req.body;
     const userId = req.user.id || req.user.userId;
 
     // استخدام vendorId أو receiverId
-    const targetVendorId = vendorId || receiverId;
-
+    let targetVendorId = vendorId || receiverId;
+    
+    // إذا لم يتم تحديد معرف البائع أو المستقبل، فهذه محادثة دعم فني
     if (!targetVendorId) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'معرف البائع أو المستقبل مطلوب',
-        error: 'Missing vendorId or receiverId'
-      });
+      // استخدام معرف افتراضي للدعم الفني أو null للمحادثات العامة
+      targetVendorId = 'support'; // يمكن تغييره إلى معرف حقيقي لوكيل الدعم
     }
 
-    const result = await chatModel.createConversation(userId, targetVendorId);
+    const result = await chatModel.createConversation(userId, targetVendorId, {
+      title: title || 'محادثة جديدة',
+      type: type || 'customerSupport'
+    });
 
     if (!result.success) {
       return res.status(500).json({ 
@@ -77,6 +78,23 @@ exports.getUserChatRooms = async (req, res) => {
   }
 };
 
+// جلب جميع المحادثات للمدير
+exports.getAllConversationsForAdmin = async (req, res) => {
+  try {
+    // التحقق من أن المستخدم مدير
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'غير مصرح لك بالوصول لهذه البيانات' });
+    }
+
+    const conversations = await chatModel.getAllConversationsForAdmin();
+    
+    res.json(conversations);
+  } catch (error) {
+    console.error('خطأ في جلب المحادثات للمدير:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 exports.getChatMessages = async (req, res) => {
   try {
     const { chatId } = req.params;
@@ -98,6 +116,17 @@ exports.sendMessage = async (req, res) => {
     const { conversationId, messageText, attachments } = req.body;
     const senderId = req.user.id;
 
+    // التحقق من المعاملات المطلوبة
+    if (!conversationId) {
+      return res.status(400).json({ message: 'معرف المحادثة مطلوب' });
+    }
+    if (!messageText || messageText.trim() === '') {
+      return res.status(400).json({ message: 'نص الرسالة مطلوب' });
+    }
+    if (!senderId) {
+      return res.status(400).json({ message: 'معرف المرسل مطلوب' });
+    }
+
     // الحصول على معلومات المحادثة
     const [conversations] = await chatModel.pool.execute(
       'SELECT * FROM chat_conversations WHERE id = ?',
@@ -109,17 +138,64 @@ exports.sendMessage = async (req, res) => {
     }
 
     // تحديد المستلم
-    const receiverId = conversations[0].user_id == senderId
+    let receiverId = conversations[0].user_id == senderId
       ? conversations[0].vendor_id
       : conversations[0].user_id;
+
+    // التأكد من أن receiverId ليس undefined أو null
+    if (!receiverId) {
+      return res.status(400).json({ message: 'لا يمكن تحديد المستلم' });
+    }
+
+    // التحقق من أن receiverId هو رقم صحيح وموجود في جدول users
+    let receiverIdInt = parseInt(receiverId);
+    if (isNaN(receiverIdInt)) {
+      // إذا كان vendor_id نص مثل 'support'، استخدم المستخدم الإداري كمستلم
+      if (receiverId === 'support') {
+        // البحث عن مستخدم إداري للدعم الفني
+        const [adminUsers] = await chatModel.pool.execute(
+          'SELECT id FROM users WHERE role = ? LIMIT 1',
+          ['admin']
+        );
+        
+        if (adminUsers && adminUsers.length > 0) {
+          receiverIdInt = adminUsers[0].id;
+        } else {
+          return res.status(400).json({ 
+            message: 'لا يوجد مستخدم دعم فني متاح',
+            details: 'لم يتم العثور على مستخدم إداري للدعم الفني'
+          });
+        }
+      } else {
+        return res.status(400).json({ 
+          message: 'نوع المحادثة غير مدعوم',
+          details: 'معرف المستلم غير صحيح'
+        });
+      }
+    }
+
+    // التحقق من وجود المستلم في جدول users
+    const [receiverCheck] = await chatModel.pool.execute(
+      'SELECT id FROM users WHERE id = ?',
+      [receiverIdInt]
+    );
+
+    if (!receiverCheck || receiverCheck.length === 0) {
+      return res.status(400).json({ 
+        message: 'المستلم غير موجود',
+        details: 'معرف المستلم غير صحيح أو المستخدم محذوف'
+      });
+    }
+
+    receiverId = receiverIdInt;
 
     // إرسال الرسالة
     const result = await chatModel.sendMessage(
       conversationId,
       senderId,
       receiverId,
-      messageText,
-      attachments
+      messageText.trim(),
+      attachments || null
     );
 
     if (!result.success) {

@@ -104,3 +104,26 @@ CREATE TABLE IF NOT EXISTS favorites (
   INDEX idx_item_type (item_type),
   UNIQUE INDEX idx_user_item (user_id, item_type, item_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- إنشاء جدول العروض
+CREATE TABLE IF NOT EXISTS offers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  description TEXT,
+  code VARCHAR(50) NOT NULL UNIQUE,
+  type ENUM('percentage', 'fixed') NOT NULL,
+  value DECIMAL(10, 2) NOT NULL,
+  min_amount DECIMAL(10, 2) DEFAULT NULL,
+  max_usage INT DEFAULT NULL,
+  usage_count INT DEFAULT 0,
+  start_date DATETIME DEFAULT NULL,
+  end_date DATETIME DEFAULT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_code (code),
+  INDEX idx_active (is_active),
+  INDEX idx_type (type),
+  INDEX idx_dates (start_date, end_date),
+  INDEX idx_created (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

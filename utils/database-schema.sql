@@ -157,27 +157,40 @@ CREATE TABLE IF NOT EXISTS notifications (
 ) ENGINE=InnoDB;
 
 -- جدول المحادثات
-CREATE TABLE IF NOT EXISTS chats (
+CREATE TABLE IF NOT EXISTS chat_conversations (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
-  vendor_id INT NOT NULL,
+  vendor_id VARCHAR(50) DEFAULT 'support',
+  title VARCHAR(255) DEFAULT 'محادثة جديدة',
+  type VARCHAR(50) DEFAULT 'customerSupport',
+  last_message_text TEXT,
+  last_message_time TIMESTAMP,
+  unread_count INT DEFAULT 0,
+  is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE,
-  UNIQUE KEY unique_user_vendor (user_id, vendor_id)
+  INDEX idx_user_id (user_id),
+  INDEX idx_vendor_id (vendor_id),
+  INDEX idx_type (type),
+  INDEX idx_last_message_time (last_message_time)
 ) ENGINE=InnoDB;
 
 -- جدول رسائل المحادثات
 CREATE TABLE IF NOT EXISTS chat_messages (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  chat_id INT NOT NULL,
+  conversation_id INT NOT NULL,
   sender_id INT NOT NULL,
-  message TEXT NOT NULL,
+  receiver_id INT,
+  message_text TEXT NOT NULL,
   is_read BOOLEAN DEFAULT FALSE,
+  attachments JSON,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (chat_id) REFERENCES chats(id) ON DELETE CASCADE,
-  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE
+  FOREIGN KEY (conversation_id) REFERENCES chat_conversations(id) ON DELETE CASCADE,
+  FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (receiver_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_conversation (conversation_id),
+  INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB;
 
 -- جدول التحليلات

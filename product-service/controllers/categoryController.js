@@ -383,13 +383,20 @@ exports.deleteSubCategory = async (req, res) => {
 // الحصول على الفئات المميزة
 exports.getFeaturedCategories = async (req, res) => {
   try {
-    const categories = await Category.find({ isFeatured: true, isActive: true })
-      .sort({ displayOrder: 1 });
+    const options = {
+      includeSubCategories: true,
+      onlyActive: true
+    };
+    
+    const categories = await Category.findAll(options);
+    
+    // تصفية الفئات المميزة فقط
+    const featuredCategories = categories.filter(cat => cat.is_featured === true);
     
     res.status(200).json({
       success: true,
-      count: categories.length,
-      data: categories
+      count: featuredCategories.length,
+      data: featuredCategories
     });
   } catch (error) {
     console.error('خطأ في الحصول على الفئات المميزة:', error);

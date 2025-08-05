@@ -7,6 +7,7 @@ class Product {
     this.name = data.name;
     this.description = data.description;
     this.price = data.price;
+    this.priceType = data.price_type || data.priceType || 'fixed';
     this.vendorId = data.vendor_id || data.vendorId;
     this.categoryId = data.category_id || data.categoryId;
     this.imageUrl = data.image_url || data.imageUrl;
@@ -14,6 +15,7 @@ class Product {
     this.rating = data.rating || 0;
     this.reviewCount = data.review_count || data.reviewCount || 0;
     this.isActive = data.is_active !== undefined ? data.is_active : data.isActive;
+    this.isFeatured = data.is_featured !== undefined ? data.is_featured : data.isFeatured || false;
     this.createdAt = data.created_at || data.createdAt;
     this.updatedAt = data.updated_at || data.updatedAt;
     this.tags = data.tags || [];
@@ -29,9 +31,16 @@ class Product {
       if (!productData.name || productData.name.trim().length === 0) {
         throw new Error('Product name is required');
       }
-      if (!productData.price || productData.price < 0) {
-        throw new Error('Valid price is required');
+      
+      // التحقق من نوع السعر والسعر
+      const priceType = productData.priceType || 'fixed';
+      if (priceType === 'fixed' && (!productData.price || productData.price < 0)) {
+        throw new Error('Valid price is required when price type is fixed');
       }
+      if (priceType === 'contact' && productData.price) {
+        productData.price = null; // إزالة السعر إذا كان النوع "تواصل"
+      }
+      
       if (!productData.vendorId) {
         throw new Error('Vendor ID is required');
       }
@@ -42,20 +51,22 @@ class Product {
       // إدراج المنتج
       const [result] = await connection.execute(
         `INSERT INTO products 
-        (name, description, price, vendor_id, category_id, image_url, stock_quantity, 
-         rating, review_count, is_active, created_at, updated_at) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        (name, description, price, price_type, vendor_id, category_id, image_url, stock_quantity, 
+         rating, review_count, is_active, is_featured, created_at, updated_at) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
         [
           productData.name.trim(),
           productData.description || null,
           productData.price,
+          priceType,
           productData.vendorId,
           productData.categoryId,
           productData.imageUrl || null,
           productData.stockQuantity || 0,
           0, // rating
           0, // review_count
-          productData.isActive !== undefined ? productData.isActive : true
+          productData.isActive !== undefined ? productData.isActive : true,
+          productData.isFeatured || false
         ]
       );
 
@@ -138,6 +149,11 @@ class Product {
       if (filters.isActive !== undefined) {
         whereClause += ' AND is_active = ?';
         filterValues.push(filters.isActive);
+      }
+      
+      if (filters.isFeatured !== undefined) {
+        whereClause += ' AND is_featured = ?';
+        filterValues.push(filters.isFeatured);
       }
       
       if (filters.inStock) {
@@ -258,7 +274,8 @@ class Product {
         'categoryId': 'category_id',
         'imageUrl': 'image_url',
         'stockQuantity': 'stock_quantity',
-        'isActive': 'is_active'
+        'isActive': 'is_active',
+        'isFeatured': 'is_featured'
       };
       
       const updates = [];

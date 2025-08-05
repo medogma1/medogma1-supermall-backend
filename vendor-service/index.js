@@ -13,7 +13,7 @@ const { testConnection, initializeDatabase } = require('./config/database');
 const authMiddleware = require('./middleware/authMiddleware');
 
 // استيراد مسارات API
-const vendorRoutes = require('./routes/vendorroutes');
+const vendorRoutes = require('./routes/vendorRoutes');
 const serviceRoutes = require('./routes/serviceRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 

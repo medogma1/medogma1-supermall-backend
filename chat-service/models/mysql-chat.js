@@ -18,8 +18,10 @@ const dbConfig = {
 const pool = mysql.createPool(dbConfig);
 
 // إنشاء محادثة جديدة
-async function createConversation(userId, vendorId) {
+async function createConversation(userId, vendorId, options = {}) {
   try {
+    const { title = 'محادثة جديدة', type = 'customerSupport' } = options;
+    
     // التحقق من وجود محادثة سابقة
     const [existingConversations] = await pool.execute(
       'SELECT * FROM chat_conversations WHERE user_id = ? AND vendor_id = ?',
@@ -30,10 +32,10 @@ async function createConversation(userId, vendorId) {
       return { success: true, conversation: existingConversations[0] };
     }
 
-    // إنشاء محادثة جديدة
+    // إنشاء محادثة جديدة مع العنوان والنوع
     const [result] = await pool.execute(
-      'INSERT INTO chat_conversations (user_id, vendor_id) VALUES (?, ?)',
-      [userId, vendorId]
+      'INSERT INTO chat_conversations (user_id, vendor_id, title, type, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())',
+      [userId, vendorId, title, type]
     );
 
     const [newConversation] = await pool.execute(
@@ -113,6 +115,55 @@ async function getUserConversations(userId) {
     return conversations;
   } catch (error) {
     console.error('خطأ في الحصول على محادثات المستخدم:', error);
+    return [];
+  }
+}
+
+// الحصول على جميع المحادثات للمدير
+async function getAllConversationsForAdmin() {
+  try {
+    const [conversations] = await pool.execute(
+      `SELECT c.*, 
+        u.username as user_name, u.email as user_email, u.profile_image as user_image,
+        v.store_name as vendor_name, v.store_logo_url as vendor_image,
+        (
+          SELECT cm.message_text 
+          FROM chat_messages cm 
+          WHERE cm.conversation_id = c.id 
+          ORDER BY cm.created_at DESC 
+          LIMIT 1
+        ) as last_message_text,
+        (
+          SELECT COUNT(*) 
+          FROM chat_messages cm 
+          WHERE cm.conversation_id = c.id AND cm.is_read = FALSE
+        ) as unread_count
+      FROM chat_conversations c
+      JOIN users u ON c.user_id = u.id
+      JOIN vendors v ON c.vendor_id = v.id
+      ORDER BY c.last_message_time DESC`,
+      []
+    );
+
+    return conversations.map(conv => ({
+      id: conv.id,
+      title: conv.title || `محادثة بين ${conv.user_name} و ${conv.vendor_name}`,
+      userId: conv.user_id,
+      vendorId: conv.vendor_id,
+      userName: conv.user_name,
+      userEmail: conv.user_email,
+      userImage: conv.user_image,
+      vendorName: conv.vendor_name,
+      vendorImage: conv.vendor_image,
+      lastMessage: conv.last_message_text,
+      lastMessageAt: conv.last_message_time,
+      unreadCount: conv.unread_count || 0,
+      isActive: conv.is_active,
+      createdAt: conv.created_at,
+      updatedAt: conv.updated_at
+    }));
+  } catch (error) {
+    console.error('خطأ في الحصول على جميع المحادثات للمدير:', error);
     return [];
   }
 }
@@ -240,6 +291,7 @@ module.exports = {
   sendMessage,
   getConversationMessages,
   getUserConversations,
+  getAllConversationsForAdmin,
   markMessagesAsRead,
   getUnreadMessageCount,
   closeConversation,

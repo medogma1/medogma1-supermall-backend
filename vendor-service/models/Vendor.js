@@ -815,22 +815,24 @@ class Vendor {
       const [rows] = await pool.execute(`
         SELECT 
           id, 
+          name,
+          email,
+          phone,
           store_name, 
           store_description, 
           store_logo_url,
-          contact_phone as phone,
-          contact_email as email,
+          contact_phone,
+          contact_email,
           store_address,
           country,
           governorate,
-          is_active,
-          isVerified,
-          rating,
-          review_count,
+          is_approved,
+          certification_status,
+          is_certified,
           created_at
         FROM vendors 
-        WHERE is_active = true AND store_settings_completed = true AND isVerified = 1
-        ORDER BY rating DESC, created_at DESC
+        WHERE is_approved = 1 AND is_certified = 1
+        ORDER BY created_at DESC
       `);
       return rows.map(row => snakeToCamel(row));
     } catch (error) {
@@ -980,6 +982,127 @@ class Vendor {
       };
     } catch (error) {
       console.error('خطأ في جلب لوحة تحكم البائع:', error);
+      throw error;
+    }
+  }
+
+  // ==================== المتاجر المميزة ====================
+
+  // جلب المتاجر المميزة
+  static async getFeaturedStores() {
+    try {
+      const query = `
+        SELECT 
+          fs.id,
+          fs.store_id as storeId,
+          fs.priority,
+          fs.created_at,
+          fs.updated_at,
+          v.store_name as storeName,
+          v.store_logo_url as storeLogoUrl,
+          v.store_description as storeDescription,
+          v.rating,
+          v.is_verified,
+          v.is_active
+        FROM featured_stores fs
+        JOIN vendors v ON fs.store_id = v.id
+        WHERE v.is_active = 1
+        ORDER BY fs.priority ASC, fs.created_at DESC
+      `;
+      
+      const [rows] = await pool.execute(query);
+      return rows.map(row => snakeToCamel(row));
+    } catch (error) {
+      console.error('خطأ في جلب المتاجر المميزة:', error);
+      throw error;
+    }
+  }
+
+  // إضافة متجر مميز
+  static async addFeaturedStore(storeId, priority = null) {
+    try {
+      // التحقق من وجود المتجر
+      const [vendor] = await pool.execute(
+        'SELECT id, store_name FROM vendors WHERE id = ? AND is_active = 1',
+        [storeId]
+      );
+      
+      if (vendor.length === 0) {
+        throw new Error('المتجر غير موجود أو غير نشط');
+      }
+      
+      // التحقق من عدم وجود المتجر في المتاجر المميزة بالفعل
+      const [existing] = await pool.execute(
+        'SELECT id FROM featured_stores WHERE store_id = ?',
+        [storeId]
+      );
+      
+      if (existing.length > 0) {
+        throw new Error('المتجر مميز بالفعل');
+      }
+      
+      // تحديد الأولوية إذا لم يتم تمريرها
+      if (priority === null) {
+        const [maxPriority] = await pool.execute(
+          'SELECT COALESCE(MAX(priority), 0) + 1 as next_priority FROM featured_stores'
+        );
+        priority = maxPriority[0].next_priority;
+      }
+      
+      // إضافة المتجر إلى المتاجر المميزة
+      const [result] = await pool.execute(
+        'INSERT INTO featured_stores (store_id, priority, created_at, updated_at) VALUES (?, ?, NOW(), NOW())',
+        [storeId, priority]
+      );
+      
+      return {
+        id: result.insertId,
+        storeId: storeId,
+        priority: priority,
+        storeName: vendor[0].store_name
+      };
+    } catch (error) {
+      console.error('خطأ في إضافة متجر مميز:', error);
+      throw error;
+    }
+  }
+
+  // تحديث متجر مميز
+  static async updateFeaturedStore(id, updates) {
+    try {
+      const { priority } = updates;
+      
+      const [result] = await pool.execute(
+        'UPDATE featured_stores SET priority = ?, updated_at = NOW() WHERE id = ?',
+        [priority, id]
+      );
+      
+      if (result.affectedRows === 0) {
+        throw new Error('المتجر المميز غير موجود');
+      }
+      
+      return { id, priority };
+    } catch (error) {
+      console.error('خطأ في تحديث متجر مميز:', error);
+      throw error;
+    }
+  }
+
+  // حذف متجر مميز
+  static async removeFeaturedStore(id) {
+    try {
+      const [result] = await pool.execute(
+        'DELETE FROM featured_stores WHERE id = ?',
+        [id]
+      );
+      
+      if (result.affectedRows === 0) {
+        throw new Error('المتجر المميز غير موجود');
+      }
+      
+      return { id };
+    } catch (error) {
+      console.error('خطأ في حذف متجر مميز:', error);
       throw error;
     }
   }
